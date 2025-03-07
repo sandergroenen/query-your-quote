@@ -3,7 +3,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "vite": "vite"
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",
@@ -16,8 +16,8 @@
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^1.2.0",
         "postcss": "^8.4.31",
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
         "tailwindcss": "^3.2.1",
         "vite": "^6.0.11"
     },

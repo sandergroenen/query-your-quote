@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
 import RandomQuote from '@/Components/Quote/RandomQuote';
+import RateLimitDemo from '@/Components/Quote/RateLimitDemo';
 
 export default function Quotes({ auth }) {
     return (
@@ -66,7 +67,13 @@ export default function Quotes({ auth }) {
                             <div className="text-gray-900 dark:text-gray-100">
                                 <h1 className="text-2xl font-bold mb-6">Query Your Quote</h1>
                                 <p className="mb-6">
-                                    Welcome to Query Your Quote, a simple application that fetches random quotes from the DummyJSON API.
+                                    Welcome to Query Your Quote, a simple application that fetches random quotes from both DummyJSON and ZenQuotes APIs and compares their response times.
+                                </p>
+                                <p className="mb-6">
+                                    The quote that loads faster will be highlighted with a green background and marked as "FASTEST".
+                                </p>
+                                <p className="mb-6">
+                                    This application also demonstrates rate limiting with 5 requests per 10 seconds by default. Try the rate limit demo below!
                                 </p>
                             </div>
                         </div>
@@ -74,6 +81,8 @@ export default function Quotes({ auth }) {
                         <div className="mt-6">
                             <RandomQuote />
                         </div>
+                        
+                        <RateLimitDemo />
                     </div>
                 </div>
             </div>

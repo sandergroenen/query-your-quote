@@ -4,20 +4,35 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class DummyJsonService
 {
     protected $baseUrl = 'https://dummyjson.com';
     protected $accessToken = null;
     protected $currentUser = null;
+    protected $apiUrl = 'https://dummyjson.com/quotes/random';
 
     /**
      * Login to DummyJSON API and get access token using a random user
      *
      * @return string
+     * @throws \Exception
      */
     public function login()
     {
+        // If we already have a token, return it
+        if ($this->accessToken) {
+            return $this->accessToken;
+        }
+        
+        // Check if token is in cache
+        if (Cache::has('dummyjson_token')) {
+            $this->accessToken = Cache::get('dummyjson_token');
+            $this->currentUser = Cache::get('dummyjson_user');
+            return $this->accessToken;
+        }
+        
         try {
             // Fetch users from the API
             $usersResponse = Http::get($this->baseUrl . '/users');
@@ -55,7 +70,7 @@ class DummyJsonService
                 $data = $response->json();
                 
                 // Debug the response
-                \Log::debug('Auth response: ' . json_encode($data));
+                Log::debug('Auth response: ' . json_encode($data));
                 
                 // Check for token in different possible fields
                 if (isset($data['token'])) {
@@ -65,8 +80,12 @@ class DummyJsonService
                 } else {
                     // If no token is found, use a dummy token for testing
                     $this->accessToken = 'dummy-token';
-                    \Log::warning('No token found in response, using dummy token');
+                    Log::warning('No token found in response, using dummy token');
                 }
+                
+                // Cache the token and user
+                Cache::put('dummyjson_token', $this->accessToken, now()->addMinutes(30));
+                Cache::put('dummyjson_user', $this->currentUser, now()->addMinutes(30));
                 
                 return $this->accessToken;
             }
@@ -74,48 +93,73 @@ class DummyJsonService
             throw new \Exception('Failed to authenticate with DummyJSON API: ' . $response->body());
         } catch (\Exception $e) {
             // Log the error
-            \Log::error('DummyJSON authentication error: ' . $e->getMessage());
+            Log::error('DummyJSON authentication error: ' . $e->getMessage());
             throw $e;
         }
     }
-
+    
     /**
-     * Get a random quote from the DummyJSON API
+     * Get a random quote from DummyJSON API
      *
      * @return array
      */
     public function getRandomQuote()
     {
+        $startTime = microtime(true);
+        
         try {
             // Authenticate first
             $this->login();
             
-            // Start timing
-            $startTime = microtime(true);
+            // Make API request
+            $response = Http::withToken($this->accessToken)->timeout(5)->get($this->apiUrl);
             
-            // Make the request with the token
-            $response = Http::withToken($this->accessToken)
-                ->get($this->baseUrl . '/quotes/random');
-            
-            // End timing
-            $endTime = microtime(true);
-            $timeTaken = (int)round(($endTime - $startTime) * 1000); // Convert to milliseconds and ensure it's an integer
-            
-            if ($response->successful()) {
-                $data = $response->json();
+            // Check if the request was successful
+            if (!$response->successful()) {
+                $statusCode = $response->status();
+                $errorMessage = $response->body();
                 
-                // Add user info and timing to the response
-                $data['user'] = $this->currentUser;
-                $data['timeTaken'] = $timeTaken;
+                Log::warning("DummyJSON API error: {$statusCode}", [
+                    'error' => $errorMessage,
+                    'status' => $statusCode
+                ]);
                 
-                return $data;
+                throw new \Exception("DummyJSON API error: HTTP {$statusCode} - {$errorMessage}");
             }
             
-            throw new \Exception('Failed to fetch random quote: ' . $response->body());
+            // Parse response
+            $data = $response->json();
+            
+            // Check if we got valid data
+            if (empty($data) || !isset($data['quote']) || !isset($data['author'])) {
+                $responseBody = $response->body();
+                Log::warning("Invalid response from DummyJSON API", ['response' => $responseBody]);
+                throw new \Exception("Invalid response from DummyJSON API: {$responseBody}");
+            }
+            
+            // Calculate time taken
+            $timeTaken = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
+            
+            // Return formatted quote with user info
+            return [
+                'quote' => $data['quote'],
+                'author' => $data['author'],
+                'timeTaken' => round($timeTaken, 2),
+                'user' => $this->currentUser
+            ];
         } catch (\Exception $e) {
             // Log the error
-            \Log::error('DummyJSON random quote error: ' . $e->getMessage());
-            throw $e;
+            Log::warning('Error fetching quote from DummyJSON: ' . $e->getMessage());
+            
+            // Return error information
+            return [
+                'quote' => 'Unable to fetch quote from DummyJSON: ' . $e->getMessage(),
+                'author' => 'Error',
+                'timeTaken' => 0,
+                'error' => true,
+                'errorMessage' => $e->getMessage(),
+                'user' => $this->currentUser
+            ];
         }
     }
 }

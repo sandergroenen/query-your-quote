@@ -46,21 +46,59 @@ jobs:
           --type SecureString \
           --overwrite
 
-    - name: Deploy CloudFormation stack if it doesn't exist
+    - name: Deploy CloudFormation stack
       run: |
-        # Check if stack exists
-        if ! aws cloudformation describe-stacks --stack-name laravel-app-stack 2>&1 | grep -q 'Stack with id laravel-app-stack does not exist'; then
-          echo "Stack already exists, skipping creation"
+        # Set stack name
+        AWS_STACK_NAME="laravel-app-stack"
+        
+        # Check if stack exists and get its status
+        if aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" &> /dev/null; then
+          # Check the current stack status
+          CURRENT_STATUS=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].StackStatus" --output text)
+          
+          echo "Stack exists with status: $CURRENT_STATUS"
+          
+          if [[ "$CURRENT_STATUS" == "CREATE_COMPLETE" || "$CURRENT_STATUS" == "UPDATE_COMPLETE" || "$CURRENT_STATUS" == "ROLLBACK_COMPLETE" || "$CURRENT_STATUS" == "UPDATE_ROLLBACK_COMPLETE" ]]; then
+            # Stack exists and is in a stable state, update it
+            echo "Updating existing stack..."
+            aws cloudformation update-stack \
+              --stack-name "$AWS_STACK_NAME" \
+              --template-body file://cloudformation.yml \
+              --capabilities CAPABILITY_IAM \
+              || echo "No updates to be performed."
+          else
+            # Stack exists but is in an unstable state, delete it first
+            echo "Stack is in state $CURRENT_STATUS. Deleting and recreating..."
+            aws cloudformation delete-stack --stack-name "$AWS_STACK_NAME"
+            
+            # Wait for stack deletion to complete
+            echo "Waiting for stack deletion to complete..."
+            aws cloudformation wait stack-delete-complete --stack-name "$AWS_STACK_NAME"
+            
+            # Create new stack
+            echo "Creating new stack..."
+            aws cloudformation create-stack \
+              --stack-name "$AWS_STACK_NAME" \
+              --template-body file://cloudformation.yml \
+              --capabilities CAPABILITY_IAM
+          fi
         else
-          echo "Creating CloudFormation stack"
+          # Stack doesn't exist, create it
+          echo "Stack does not exist. Creating new stack..."
           aws cloudformation create-stack \
-            --stack-name laravel-app-stack \
+            --stack-name "$AWS_STACK_NAME" \
             --template-body file://cloudformation.yml \
             --capabilities CAPABILITY_IAM
-          
-          echo "Waiting for stack creation to complete"
-          aws cloudformation wait stack-create-complete --stack-name laravel-app-stack
         fi
+        
+        # Wait for stack creation/update to complete
+        echo "Waiting for stack operation to complete..."
+        aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME" || \
+        aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME"
+        
+        # Get outputs from the stack
+        echo "Getting stack outputs..."
+        aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].Outputs" --output json
 
     - name: Login to Amazon ECR
       id: login-ecr

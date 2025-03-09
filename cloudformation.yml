@@ -125,11 +125,6 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: laravel-app-cluster
-      CapacityProviders:
-        - !Ref ECSCapacityProvider
-      DefaultCapacityProviderStrategy:
-        - CapacityProvider: !Ref ECSCapacityProvider
-          Weight: 1
 
   # ECS Task Execution Role
   ECSTaskExecutionRole:
@@ -296,13 +291,10 @@ Resources:
       TaskDefinition: !Ref ECSTaskDefinition
       DesiredCount: 1
       LaunchType: EC2  # Explicitly set to EC2
-      CapacityProviderStrategy:
-        - CapacityProvider: !Ref ECSCapacityProvider
-          Weight: 1
       LoadBalancers:
-        - ContainerName: nginx
+        - LoadBalancerName: !Ref ClassicLoadBalancer
+          ContainerName: nginx
           ContainerPort: 80
-          LoadBalancerName: !Ref ClassicLoadBalancer
 
   # ECS Task Definition
   ECSTaskDefinition:

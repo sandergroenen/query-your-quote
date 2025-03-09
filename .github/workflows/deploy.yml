@@ -46,6 +46,16 @@ jobs:
           --type SecureString \
           --overwrite
 
+    - name: Create ECS Service Linked Role if it doesn't exist
+      run: |
+        # Check if the role already exists
+        if ! aws iam get-role --role-name AWSServiceRoleForECS 2>/dev/null; then
+          echo "Creating ECS Service Linked Role..."
+          aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com
+        else
+          echo "ECS Service Linked Role already exists."
+        fi
+
     - name: Deploy CloudFormation stack
       run: |
         # Set stack name

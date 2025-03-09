@@ -120,8 +120,30 @@ jobs:
         
         # Wait for stack creation/update to complete
         echo "Waiting for stack operation to complete..."
-        aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME" || \
-        aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME"
+        
+        # Check what operation we're waiting for
+        CURRENT_STATUS=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "STACK_NOT_FOUND")
+        
+        if [[ "$CURRENT_STATUS" == "CREATE_IN_PROGRESS" ]]; then
+          # Wait for stack creation
+          echo "Waiting for stack creation to complete..."
+          if ! aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME"; then
+            echo "Stack creation failed. Check the AWS CloudFormation console for details."
+            exit 1
+          fi
+        elif [[ "$CURRENT_STATUS" == "UPDATE_IN_PROGRESS" ]]; then
+          # Wait for stack update
+          echo "Waiting for stack update to complete..."
+          if ! aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME"; then
+            echo "Stack update failed. Check the AWS CloudFormation console for details."
+            exit 1
+          fi
+        elif [[ "$CURRENT_STATUS" == "STACK_NOT_FOUND" ]]; then
+          echo "Stack not found. It may have been deleted or failed to create."
+          exit 1
+        else
+          echo "Stack is in state $CURRENT_STATUS. No need to wait."
+        fi
         
         # Get outputs from the stack
         echo "Getting stack outputs..."

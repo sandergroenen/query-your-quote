@@ -58,7 +58,7 @@ jobs:
           
           echo "Stack exists with status: $CURRENT_STATUS"
           
-          if [[ "$CURRENT_STATUS" == "CREATE_COMPLETE" || "$CURRENT_STATUS" == "UPDATE_COMPLETE" || "$CURRENT_STATUS" == "ROLLBACK_COMPLETE" || "$CURRENT_STATUS" == "UPDATE_ROLLBACK_COMPLETE" ]]; then
+          if [[ "$CURRENT_STATUS" == "CREATE_COMPLETE" || "$CURRENT_STATUS" == "UPDATE_COMPLETE" || "$CURRENT_STATUS" == "UPDATE_ROLLBACK_COMPLETE" ]]; then
             # Stack exists and is in a stable state, update it
             echo "Updating existing stack..."
             aws cloudformation update-stack \
@@ -67,7 +67,7 @@ jobs:
               --capabilities CAPABILITY_IAM \
               || echo "No updates to be performed."
           else
-            # Stack exists but is in an unstable state, delete it first
+            # Stack exists but is in an unstable state (like ROLLBACK_COMPLETE), delete it first
             echo "Stack is in state $CURRENT_STATUS. Deleting and recreating..."
             
             # First, get the ECR repository URI

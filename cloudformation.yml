@@ -100,11 +100,36 @@ Resources:
             ]
           }
 
+  # EC2 Instance Role for ECS
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceRole
+
   # ECS Cluster
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: laravel-app-cluster
+      CapacityProviders:
+        - !Ref ECSCapacityProvider
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: !Ref ECSCapacityProvider
+          Weight: 1
 
   # ECS Task Execution Role
   ECSTaskExecutionRole:
@@ -119,6 +144,29 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # Security Groups
+  ECSInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ECS instances
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 32768
+          ToPort: 65535
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Load Balancer
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
 
   # RDS Database (Free Tier eligible)
   DBSubnetGroup:
@@ -159,111 +207,145 @@ Resources:
       BackupRetentionPeriod: 7
       DeletionProtection: false
 
-  # Application Load Balancer
-  ALBSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+  # Classic Load Balancer
+  ClassicLoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
     Properties:
-      GroupDescription: Security group for ALB
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-
-  ApplicationLoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: laravel-alb
+      Listeners:
+        - LoadBalancerPort: '80'
+          InstancePort: '80'
+          Protocol: HTTP
+      HealthCheck:
+        Target: HTTP:80/
+        HealthyThreshold: '3'
+        UnhealthyThreshold: '5'
+        Interval: '30'
+        Timeout: '5'
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
       Subnets:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
-      SecurityGroups:
-        - !Ref ALBSecurityGroup
-      Scheme: internet-facing
-      LoadBalancerAttributes:
-        - Key: idle_timeout.timeout_seconds
-          Value: '60'
+      CrossZone: true
 
-  ALBTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  # EC2 Launch Template for ECS
+  ECSLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      Name: laravel-tg
-      Protocol: HTTP
-      Port: 80
-      VpcId: !Ref VPC
-      TargetType: ip
-      HealthCheckPath: /
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 3
-      UnhealthyThresholdCount: 3
+      LaunchTemplateName: ECSLaunchTemplate
+      VersionDescription: Initial version
+      LaunchTemplateData:
+        ImageId: ami-0c1f6bd8860697cd6  # Amazon ECS-optimized AMI for eu-central-1
+        InstanceType: t2.micro  # Free tier eligible
+        IamInstanceProfile:
+          Name: !Ref EC2InstanceProfile
+        SecurityGroupIds:
+          - !Ref ECSInstanceSecurityGroup
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+            yum install -y aws-cfn-bootstrap
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
 
-  ALBListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
+  # Auto Scaling Group for ECS
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      LoadBalancerArn: !Ref ApplicationLoadBalancer
-      Protocol: HTTP
-      Port: 80
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref ALBTargetGroup
+      VPCZoneIdentifier:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ECSLaunchTemplate
+        Version: !GetAtt ECSLaunchTemplate.LatestVersionNumber
+      MinSize: 1
+      MaxSize: 1
+      DesiredCapacity: 1
+      Tags:
+        - Key: Name
+          Value: ECS Instance
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT15M
+        WaitOnResourceSignals: true
+
+  # ECS Capacity Provider
+  ECSCapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !Ref ECSAutoScalingGroup
+        ManagedScaling:
+          Status: ENABLED
+          TargetCapacity: 100
+        ManagedTerminationProtection: DISABLED
 
   # ECS Service
-  ECSServiceSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for ECS service
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          SourceSecurityGroupId: !Ref ALBSecurityGroup
-
   ECSService:
     Type: AWS::ECS::Service
-    DependsOn: ALBListener
+    DependsOn: ClassicLoadBalancer
     Properties:
       ServiceName: laravel-app-service
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref ECSTaskDefinition
       DesiredCount: 1
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          Subnets:
-            - !Ref PublicSubnet1
-            - !Ref PublicSubnet2
-          SecurityGroups:
-            - !Ref ECSServiceSecurityGroup
+      LaunchType: EC2  # Explicitly set to EC2
+      CapacityProviderStrategy:
+        - CapacityProvider: !Ref ECSCapacityProvider
+          Weight: 1
       LoadBalancers:
         - ContainerName: nginx
           ContainerPort: 80
-          TargetGroupArn: !Ref ALBTargetGroup
+          LoadBalancerName: !Ref ClassicLoadBalancer
 
   # ECS Task Definition
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: laravel-app
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
+      NetworkMode: bridge  # Bridge mode is required for Classic Load Balancer with EC2 launch type
       ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
-      Cpu: '512'  # 0.5 vCPU
-      Memory: '1024'  # 1 GB
       ContainerDefinitions:
+        # Initialization container to copy static files to shared volume
+        - Name: init
+          Image: !Join 
+            - ''
+            - - !GetAtt ECRRepository.RepositoryUri
+              - ':latest'
+          Essential: false
+          Command: 
+            - "/bin/sh"
+            - "-c"
+            - "mkdir -p /shared && cp -r /var/www/public/* /shared/"
+          MountPoints:
+            - SourceVolume: shared-data
+              ContainerPath: /shared
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CloudWatchLogsGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: ecs
+
+        # Laravel App Container
         - Name: app
           Image: !Join 
             - ''
             - - !GetAtt ECRRepository.RepositoryUri
               - ':latest'
           Essential: true
+          DependsOn:
+            - ContainerName: init
+              Condition: SUCCESS
           PortMappings:
             - ContainerPort: 9000
-              HostPort: 9000
+              HostPort: 9000  # Fixed port for PHP-FPM
           Environment:
             - Name: APP_ENV
               Value: production
@@ -273,22 +355,19 @@ Resources:
               Value: laravel
             - Name: DB_USERNAME
               Value: root
+          Secrets:
+            - Name: APP_KEY
+              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/laravel-app/app-key
             - Name: DB_PASSWORD
-              Value: rootpassword  # Change this in production
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref CloudWatchLogsGroup
-              awslogs-region: !Ref 'AWS::Region'
-              awslogs-stream-prefix: ecs
-        - Name: nginx
-          Image: nginx:alpine
-          Essential: true
-          PortMappings:
-            - ContainerPort: 80
-              HostPort: 80
-          Links:
-            - app
+              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/laravel-app/db-password
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - php artisan --version || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 60
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -296,12 +375,121 @@ Resources:
               awslogs-region: !Ref 'AWS::Region'
               awslogs-stream-prefix: ecs
 
+        # Nginx Container
+        - Name: nginx
+          Image: nginx:alpine
+          Essential: true
+          DependsOn:
+            - ContainerName: init
+              Condition: SUCCESS
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80  # Fixed port for Nginx to work with Classic Load Balancer
+          MountPoints:
+            - SourceVolume: shared-data
+              ContainerPath: /var/www/public
+              ReadOnly: true
+          Links:
+            - app
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost/ || exit 1
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 60
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CloudWatchLogsGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: ecs
+      Volumes:
+        - Name: shared-data
+
   # CloudWatch Logs
   CloudWatchLogsGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /ecs/laravel-app
       RetentionInDays: 7
+
+  # Auto-deletion after 30 minutes
+  # Lambda Role for stack deletion
+  StackDeletionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CloudFormationDeleteStack
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: cloudformation:DeleteStack
+                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*
+
+  # Lambda function to delete the stack
+  StackDeletionFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt StackDeletionRole.Arn
+      Runtime: python3.9
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+          import cfnresponse
+          
+          def handler(event, context):
+              # If this is a CloudFormation custom resource event, handle it
+              if 'RequestType' in event:
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  return
+                  
+              # Otherwise, delete the stack
+              stack_name = os.environ['STACK_NAME']
+              cf_client = boto3.client('cloudformation')
+              print(f"Deleting stack {stack_name}")
+              cf_client.delete_stack(StackName=stack_name)
+              return {
+                  'statusCode': 200,
+                  'body': f'Stack {stack_name} deletion initiated'
+              }
+      Environment:
+        Variables:
+          STACK_NAME: !Ref AWS::StackName
+
+  # EventBridge rule to trigger the Lambda function after 30 minutes
+  StackDeletionRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Trigger stack deletion after 30 minutes
+      ScheduleExpression: rate(30 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt StackDeletionFunction.Arn
+          Id: StackDeletionTarget
+
+  # Permission for EventBridge to invoke Lambda
+  StackDeletionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref StackDeletionFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StackDeletionRule.Arn
 
 Outputs:
   VPC:
@@ -330,7 +518,7 @@ Outputs:
 
   LoadBalancerDNS:
     Description: Load Balancer DNS
-    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Value: !GetAtt ClassicLoadBalancer.DNSName
     Export:
       Name: !Sub "${AWS::StackName}-LoadBalancerDNS"
 
@@ -339,3 +527,7 @@ Outputs:
     Value: !GetAtt RDSInstance.Endpoint.Address
     Export:
       Name: !Sub "${AWS::StackName}-RDSEndpoint"
+
+  AutoDeletionWarning:
+    Description: Warning about auto-deletion
+    Value: "WARNING: This stack will automatically delete itself after 30 minutes to avoid unexpected charges!"

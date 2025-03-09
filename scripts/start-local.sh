@@ -68,7 +68,7 @@ docker compose exec -T app npm install
 
 # Start Vite development server in the background within the app container
 echo "Starting Vite development server in the background..."
-docker compose exec -d app bash -c "cd /var/www && npm run vite &"
+docker compose exec -T app bash -c "cd /var/www && npm run vite &"
 
 echo "Laravel application is now running at http://localhost"
 echo "Vite development server is running at http://localhost:5173"

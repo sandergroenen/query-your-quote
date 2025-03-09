@@ -3,6 +3,12 @@ name: Deploy to Amazon ECS
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deployment'
+        required: false
+        default: 'Manual deployment'
 
 jobs:
   deploy:
@@ -21,6 +27,41 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
+    - name: Create SSM Parameters for secrets
+      run: |
+        # Generate a random app key if it doesn't exist
+        if ! aws ssm get-parameter --name /laravel-app/app-key 2>/dev/null; then
+          APP_KEY=$(openssl rand -base64 32)
+          aws ssm put-parameter \
+            --name /laravel-app/app-key \
+            --value "base64:$APP_KEY" \
+            --type SecureString \
+            --overwrite
+        fi
+        
+        # Store database password
+        aws ssm put-parameter \
+          --name /laravel-app/db-password \
+          --value "rootpassword" \
+          --type SecureString \
+          --overwrite
+
+    - name: Deploy CloudFormation stack if it doesn't exist
+      run: |
+        # Check if stack exists
+        if ! aws cloudformation describe-stacks --stack-name laravel-app-stack 2>&1 | grep -q 'Stack with id laravel-app-stack does not exist'; then
+          echo "Stack already exists, skipping creation"
+        else
+          echo "Creating CloudFormation stack"
+          aws cloudformation create-stack \
+            --stack-name laravel-app-stack \
+            --template-body file://cloudformation.yml \
+            --capabilities CAPABILITY_IAM
+          
+          echo "Waiting for stack creation to complete"
+          aws cloudformation wait stack-create-complete --stack-name laravel-app-stack
+        fi
+
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -32,10 +73,67 @@ jobs:
         ECR_REPOSITORY: laravel-app
         IMAGE_TAG: ${{ github.sha }}
       run: |
+        # Build a docker container and push it to ECR
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
         echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
     - name: Update ECS service
       run: |
         aws ecs update-service --cluster laravel-app-cluster --service laravel-app-service --force-new-deployment
+
+    - name: Wait for service to stabilize
+      run: |
+        aws ecs wait services-stable --cluster laravel-app-cluster --services laravel-app-service
+
+    - name: Get EC2 instance ID
+      id: get-instance
+      run: |
+        # Get the EC2 instance ID from the Auto Scaling Group
+        INSTANCE_ID=$(aws autoscaling describe-auto-scaling-groups \
+          --auto-scaling-group-names $(aws cloudformation describe-stack-resources \
+            --stack-name laravel-app-stack \
+            --logical-resource-id ECSAutoScalingGroup \
+            --query "StackResources[0].PhysicalResourceId" \
+            --output text) \
+          --query "AutoScalingGroups[0].Instances[0].InstanceId" \
+          --output text)
+        echo "::set-output name=instance-id::$INSTANCE_ID"
+        echo "EC2 Instance ID: $INSTANCE_ID"
+
+    - name: Run database migrations
+      run: |
+        # Get the ECS task ARN
+        TASK_ARN=$(aws ecs list-tasks \
+          --cluster laravel-app-cluster \
+          --service-name laravel-app-service \
+          --query 'taskArns[0]' \
+          --output text)
+        
+        if [ "$TASK_ARN" != "None" ] && [ ! -z "$TASK_ARN" ]; then
+          # Wait a bit for the container to be ready
+          echo "Waiting for container to be ready..."
+          sleep 30
+          
+          # Run migrations using ECS Execute Command
+          echo "Running database migrations"
+          aws ecs execute-command \
+            --cluster laravel-app-cluster \
+            --task $TASK_ARN \
+            --container app \
+            --command "/bin/sh -c 'cd /var/www && php artisan migrate --force'" \
+            --interactive || echo "Migration command failed, container might not be ready yet"
+        else
+          echo "No ECS tasks found, skipping migrations"
+        fi
+
+    - name: Print application URL
+      run: |
+        echo "Application deployed successfully!"
+        echo "URL: http://$(aws cloudformation describe-stacks \
+          --stack-name laravel-app-stack \
+          --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDNS'].OutputValue" \
+          --output text)"
+        echo "WARNING: Stack will be automatically deleted after 30 minutes to avoid charges!"

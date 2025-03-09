@@ -26,20 +26,23 @@ WORKDIR /var/www
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Create a new Laravel project if composer.json doesn't exist
-RUN if [ ! -f "composer.json" ]; then \
-        mkdir -p /tmp/laravel && \
-        cd /tmp/laravel && \
-        composer create-project --prefer-dist laravel/laravel:^12.0 . --no-interaction && \
-        cp -R /tmp/laravel/. /var/www/ && \
-        rm -rf /tmp/laravel; \
-    fi
+# Copy composer files first for better layer caching
+COPY composer.json composer.lock* ./
 
-# Copy application files (will be overridden by volume in development)
+# Install dependencies (but don't run scripts yet as code isn't copied)
+RUN composer install --no-scripts --no-autoloader --no-interaction
+
+# Copy the rest of the application code
 COPY . .
 
-# Install dependencies
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# Generate optimized autoloader and run scripts now that code is available
+RUN composer dump-autoload --optimize && composer run-script post-autoload-dump
+
+# Install NPM dependencies and build assets if package.json exists
+RUN if [ -f "package.json" ]; then \
+        npm install && \
+        npm run build; \
+    fi
 
 # Create an entrypoint script to handle user creation
 RUN echo '#!/bin/bash\n\
@@ -68,6 +71,10 @@ chmod -R 755 /var/www/storage\n\
 exec "$@"\n' > /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Set proper permissions for storage and cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 # Expose port 9000
 EXPOSE 9000

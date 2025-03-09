@@ -311,6 +311,7 @@ Resources:
             - - !GetAtt ECRRepository.RepositoryUri
               - ':latest'
           Essential: false
+          MemoryReservation: 128
           Command: 
             - "/bin/sh"
             - "-c"
@@ -332,6 +333,8 @@ Resources:
             - - !GetAtt ECRRepository.RepositoryUri
               - ':latest'
           Essential: true
+          Memory: 512
+          MemoryReservation: 256
           DependsOn:
             - ContainerName: init
               Condition: SUCCESS
@@ -371,6 +374,8 @@ Resources:
         - Name: nginx
           Image: nginx:alpine
           Essential: true
+          Memory: 256
+          MemoryReservation: 128
           DependsOn:
             - ContainerName: init
               Condition: SUCCESS

@@ -193,7 +193,7 @@ Resources:
       AllocatedStorage: 20
       StorageType: gp2
       MasterUsername: root
-      MasterUserPassword: '{{resolve:ssm:/laravel-app/db-password:1}}'
+      MasterUserPassword: '{{resolve:ssm-secure:/laravel-app/db-password:1}}'
       DBSubnetGroupName: !Ref DBSubnetGroup
       VPCSecurityGroups:
         - !Ref RDSSecurityGroup

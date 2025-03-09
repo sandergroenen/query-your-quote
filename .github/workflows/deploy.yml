@@ -56,7 +56,7 @@ jobs:
           echo "ECS Service Linked Role already exists."
         fi
 
-    - name: Deploy CloudFormation stack
+    - name: Deploy CloudFormation stack (initial)
       run: |
         # Set stack name
         AWS_STACK_NAME="laravel-app-stack"
@@ -100,19 +100,16 @@ jobs:
                 echo "Deleting images from ECR repository"
                 aws ecr batch-delete-image \
                   --repository-name "$ECR_REPO" \
-                  --image-ids "$(echo $IMAGE_DIGESTS | jq -r '.[] | {"imageDigest": .} | @json' | jq -s .)" \
-                  || echo "Failed to delete images, continuing anyway"
+                  --image-ids "$(echo $IMAGE_DIGESTS | jq -c '{imageDigest: .[]}')"
               fi
             fi
             
-            # Now delete the stack
+            # Delete the stack
             aws cloudformation delete-stack --stack-name "$AWS_STACK_NAME"
-            
-            # Wait for stack deletion to complete
             echo "Waiting for stack deletion to complete..."
             aws cloudformation wait stack-delete-complete --stack-name "$AWS_STACK_NAME"
             
-            # Create new stack
+            # Create a new stack
             echo "Creating new stack..."
             aws cloudformation create-stack \
               --stack-name "$AWS_STACK_NAME" \
@@ -121,7 +118,7 @@ jobs:
           fi
         else
           # Stack doesn't exist, create it
-          echo "Stack does not exist. Creating new stack..."
+          echo "Stack does not exist. Creating..."
           aws cloudformation create-stack \
             --stack-name "$AWS_STACK_NAME" \
             --template-body file://cloudformation.yml \
@@ -130,34 +127,18 @@ jobs:
         
         # Wait for stack creation/update to complete
         echo "Waiting for stack operation to complete..."
+        aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME" || true
+        aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME" || true
         
-        # Check what operation we're waiting for
-        CURRENT_STATUS=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "STACK_NOT_FOUND")
+        # Check final stack status
+        FINAL_STATUS=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].StackStatus" --output text)
+        echo "Final stack status: $FINAL_STATUS"
         
-        if [[ "$CURRENT_STATUS" == "CREATE_IN_PROGRESS" ]]; then
-          # Wait for stack creation
-          echo "Waiting for stack creation to complete..."
-          if ! aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME"; then
-            echo "Stack creation failed. Check the AWS CloudFormation console for details."
-            exit 1
-          fi
-        elif [[ "$CURRENT_STATUS" == "UPDATE_IN_PROGRESS" ]]; then
-          # Wait for stack update
-          echo "Waiting for stack update to complete..."
-          if ! aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME"; then
-            echo "Stack update failed. Check the AWS CloudFormation console for details."
-            exit 1
-          fi
-        elif [[ "$CURRENT_STATUS" == "STACK_NOT_FOUND" ]]; then
-          echo "Stack not found. It may have been deleted or failed to create."
+        # If the stack is in a failed state, exit with an error
+        if [[ "$FINAL_STATUS" == *FAILED* || "$FINAL_STATUS" == *ROLLBACK* ]]; then
+          echo "Stack operation failed with status: $FINAL_STATUS"
           exit 1
-        else
-          echo "Stack is in state $CURRENT_STATUS. No need to wait."
         fi
-        
-        # Get outputs from the stack
-        echo "Getting stack outputs..."
-        aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].Outputs" --output json
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -176,6 +157,23 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
         echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+    - name: Update CloudFormation stack with latest image
+      run: |
+        # Set stack name
+        AWS_STACK_NAME="laravel-app-stack"
+        
+        # Update the stack to ensure it uses the latest image
+        echo "Updating stack to use the latest image..."
+        aws cloudformation update-stack \
+          --stack-name "$AWS_STACK_NAME" \
+          --template-body file://cloudformation.yml \
+          --capabilities CAPABILITY_IAM \
+          || echo "No updates to be performed."
+        
+        # Wait for stack update to complete
+        echo "Waiting for stack update to complete..."
+        aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME" || true
 
     - name: Update ECS service
       run: |

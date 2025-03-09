@@ -139,6 +139,44 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ECSTaskExecutionRoleCustomPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # SSM Parameter Store access
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameters
+                  - ssm:GetParameter
+                  - ssm:GetParametersByPath
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/laravel-app/*
+              
+              # ECR access (already included in managed policy, but added for completeness)
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: '*'
+              
+              # CloudWatch Logs access (already included in managed policy, but added for completeness)
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/laravel-app:*
+              
+              # KMS access (if your SSM parameters are encrypted with a custom KMS key)
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'kms:ViaService': !Sub 'ssm.${AWS::Region}.amazonaws.com'
 
   # Security Groups
   ECSInstanceSecurityGroup:

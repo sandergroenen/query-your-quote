@@ -69,6 +69,33 @@ jobs:
           else
             # Stack exists but is in an unstable state, delete it first
             echo "Stack is in state $CURRENT_STATUS. Deleting and recreating..."
+            
+            # First, get the ECR repository URI
+            ECR_REPO=$(aws cloudformation describe-stack-resources \
+              --stack-name "$AWS_STACK_NAME" \
+              --logical-resource-id ECRRepository \
+              --query "StackResources[0].PhysicalResourceId" \
+              --output text 2>/dev/null || echo "")
+            
+            if [ ! -z "$ECR_REPO" ]; then
+              echo "Deleting images from ECR repository: $ECR_REPO"
+              # Get all image digests
+              IMAGE_DIGESTS=$(aws ecr list-images \
+                --repository-name "$ECR_REPO" \
+                --query 'imageIds[*].imageDigest' \
+                --output json 2>/dev/null || echo "[]")
+              
+              # If there are images, delete them
+              if [ "$IMAGE_DIGESTS" != "[]" ]; then
+                echo "Deleting images from ECR repository"
+                aws ecr batch-delete-image \
+                  --repository-name "$ECR_REPO" \
+                  --image-ids "$(echo $IMAGE_DIGESTS | jq -r '.[] | {"imageDigest": .} | @json' | jq -s .)" \
+                  || echo "Failed to delete images, continuing anyway"
+              fi
+            fi
+            
+            # Now delete the stack
             aws cloudformation delete-stack --stack-name "$AWS_STACK_NAME"
             
             # Wait for stack deletion to complete

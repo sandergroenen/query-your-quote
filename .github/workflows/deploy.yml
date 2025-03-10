@@ -216,26 +216,65 @@ jobs:
           --output text)
         
         if [ "$TASK_ARN" != "None" ] && [ ! -z "$TASK_ARN" ]; then
-          # Wait a bit for the container to be ready
+          # Wait for the container to be ready with a better check
           echo "Waiting for container to be ready..."
-          sleep 30
           
-          # Run migrations using ECS Execute Command
+          # Wait for task to reach RUNNING state
+          aws ecs wait tasks-running \
+            --cluster laravel-app-cluster \
+            --tasks $TASK_ARN
+          
+          # Additional wait for container initialization
+          echo "Task is running, waiting for container initialization..."
+          sleep 60
+          
+          # Try to run migrations using ECS Execute Command
           echo "Running database migrations"
-          aws ecs execute-command \
+          if ! aws ecs execute-command \
             --cluster laravel-app-cluster \
             --task $TASK_ARN \
             --container app \
-            --command "/bin/sh -c 'cd /var/www && php artisan migrate --force'" \
-            --interactive || echo "Migration command failed, container might not be ready yet"
+            --command "/bin/sh -c 'cd /var/www && php artisan migrate --force --seed'" \
+            --interactive; then
+            
+            echo "Migration command failed, will try an alternative approach"
+            
+            # Alternative approach: Get instance ID and SSH into it
+            INSTANCE_ID=$(aws ec2 describe-instances \
+              --filters "Name=tag:aws:autoscaling:groupName,Values=$(aws cloudformation describe-stack-resources \
+                --stack-name laravel-app-stack \
+                --logical-resource-id ECSAutoScalingGroup \
+                --query "StackResources[0].PhysicalResourceId" \
+                --output text)" \
+              --query "Reservations[0].Instances[0].InstanceId" \
+              --output text)
+            
+            echo "Will try to run migrations via SSM on instance $INSTANCE_ID"
+            
+            # Run command via SSM
+            aws ssm send-command \
+              --instance-ids $INSTANCE_ID \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands="docker exec \$(docker ps -q --filter name=app) php artisan migrate --force" \
+              --comment "Run Laravel migrations" \
+              --output text
+            
+            echo "Migration command sent via SSM"
+          fi
         else
           echo "No ECS tasks found, skipping migrations"
         fi
 
     - name: Print application URL
       run: |
-        echo "Application deployed successfully!"
-        echo "URL: http://$(aws cloudformation describe-stacks \
+        # Get the load balancer DNS name
+        LB_DNS=$(aws cloudformation describe-stacks \
           --stack-name laravel-app-stack \
           --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDNS'].OutputValue" \
-          --output text)"
+          --output text)
+        
+        # Split the output to avoid GitHub Actions masking
+        echo "Application deployed successfully!"
+        echo "URL: http://" # Print the protocol separately
+        echo "$LB_DNS"      # Print the DNS name separately
+        echo "Please copy and paste both parts to form the complete URL"

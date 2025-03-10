@@ -10,6 +10,11 @@ on:
         required: false
         default: 'Manual deployment'
 
+# Ensure only one deployment workflow runs at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     name: Deploy
@@ -56,7 +61,35 @@ jobs:
           echo "ECS Service Linked Role already exists."
         fi
 
-    - name: Deploy CloudFormation stack (initial)
+    - name: Check if ECR repository exists and create if needed
+      run: |
+        # Check if ECR repository exists
+        if ! aws ecr describe-repositories --repository-names laravel-app &> /dev/null; then
+          echo "Creating ECR repository..."
+          aws ecr create-repository --repository-name laravel-app
+        else
+          echo "ECR repository already exists."
+        fi
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: laravel-app
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build a docker container and push it to ECR
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+    - name: Deploy CloudFormation stack
       run: |
         # Set stack name
         AWS_STACK_NAME="laravel-app-stack"
@@ -139,41 +172,6 @@ jobs:
           echo "Stack operation failed with status: $FINAL_STATUS"
           exit 1
         fi
-
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: laravel-app
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        # Build a docker container and push it to ECR
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-    - name: Update CloudFormation stack with latest image
-      run: |
-        # Set stack name
-        AWS_STACK_NAME="laravel-app-stack"
-        
-        # Update the stack to ensure it uses the latest image
-        echo "Updating stack to use the latest image..."
-        aws cloudformation update-stack \
-          --stack-name "$AWS_STACK_NAME" \
-          --template-body file://cloudformation.yml \
-          --capabilities CAPABILITY_IAM \
-          || echo "No updates to be performed."
-        
-        # Wait for stack update to complete
-        echo "Waiting for stack update to complete..."
-        aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME" || true
 
     - name: Update ECS service
       run: |

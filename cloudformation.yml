@@ -314,6 +314,13 @@ Resources:
       TaskDefinition: !Ref ECSTaskDefinition
       DesiredCount: 1
       LaunchType: EC2  # Explicitly set to EC2
+      HealthCheckGracePeriodSeconds: 300  # Give containers time to start up
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 50
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
       LoadBalancers:
         - LoadBalancerName: !Ref ClassicLoadBalancer
           ContainerName: nginx
@@ -335,7 +342,7 @@ Resources:
               - ':'
               - !Ref ImageTag
           Essential: false
-          MemoryReservation: 128
+          MemoryReservation: 64
           Command: 
             - "/bin/sh"
             - "-c"
@@ -358,8 +365,8 @@ Resources:
               - ':'
               - !Ref ImageTag
           Essential: true
-          Memory: 512
-          MemoryReservation: 256
+          Memory: 384
+          MemoryReservation: 192
           DependsOn:
             - ContainerName: init
               Condition: SUCCESS
@@ -399,8 +406,8 @@ Resources:
         - Name: nginx
           Image: nginx:alpine
           Essential: true
-          Memory: 256
-          MemoryReservation: 128
+          Memory: 192
+          MemoryReservation: 96
           DependsOn:
             - ContainerName: init
               Condition: SUCCESS
@@ -459,6 +466,18 @@ Resources:
               - Effect: Allow
                 Action: cloudformation:DeleteStack
                 Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*
+              - Effect: Allow
+                Action:
+                  - ec2:*
+                  - ecs:*
+                  - lambda:*
+                  - elasticloadbalancing:*
+                  - autoscaling:*
+                  - logs:*
+                  - iam:*
+                  - events:*
+                  - rds:*
+                Resource: '*'
 
   # Lambda function to delete the stack
   StackDeletionFunction:

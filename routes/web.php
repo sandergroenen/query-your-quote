@@ -16,6 +16,11 @@ use Inertia\Inertia;
 |
 */
 
+// Health check route for AWS load balancer
+Route::get('/health', function () {
+    return response('OK', 200);
+});
+
 Route::get('/', function () {
     return Inertia::render('Quotes', [
         'canLogin' => Route::has('login'),

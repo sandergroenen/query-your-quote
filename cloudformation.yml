@@ -175,6 +175,10 @@ Resources:
           ToPort: 65535
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
         - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0  # Allow SSH access from anywhere (consider restricting this in production)
@@ -238,10 +242,10 @@ Resources:
           InstancePort: '80'
           Protocol: HTTP
       HealthCheck:
-        Target: HTTP:80/
-        HealthyThreshold: '3'
-        UnhealthyThreshold: '5'
-        Interval: '30'
+        Target: HTTP:80/health
+        HealthyThreshold: '2'
+        UnhealthyThreshold: '3'
+        Interval: '15'
         Timeout: '5'
       SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
@@ -389,12 +393,16 @@ Resources:
           Environment:
             - Name: APP_ENV
               Value: production
+            - Name: DB_CONNECTION
+              Value: mysql
             - Name: DB_HOST
               Value: !GetAtt RDSInstance.Endpoint.Address
             - Name: DB_DATABASE
               Value: laravel
             - Name: DB_USERNAME
               Value: root
+            - Name: SESSION_DRIVER
+              Value: database
           Secrets:
             - Name: APP_KEY
               ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/laravel-app/app-key

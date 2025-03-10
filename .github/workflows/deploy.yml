@@ -198,8 +198,7 @@ jobs:
         echo "Waiting for ECS service to stabilize (up to 20 minutes)..."
         aws ecs wait services-stable \
           --cluster laravel-app-cluster \
-          --services laravel-app-service \
-          --max-attempts 80
+          --services laravel-app-service
 
     - name: Get EC2 instance ID
       id: get-instance

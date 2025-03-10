@@ -108,7 +108,7 @@ jobs:
     - name: Deploy CloudFormation stack
       run: |
         # Set stack name
-        AWS_STACK_NAME="laravel-app-stack"
+        AWS_STACK_NAME="laravel-app-stack-new"
         
         # Get the ECR repository URI
         ECR_REPO_URI="${{ steps.login-ecr.outputs.registry }}/laravel-app"
@@ -193,7 +193,7 @@ jobs:
         # Get the EC2 instance ID from the Auto Scaling Group
         INSTANCE_ID=$(aws autoscaling describe-auto-scaling-groups \
           --auto-scaling-group-names $(aws cloudformation describe-stack-resources \
-            --stack-name laravel-app-stack \
+            --stack-name laravel-app-stack-new \
             --logical-resource-id ECSAutoScalingGroup \
             --query "StackResources[0].PhysicalResourceId" \
             --output text) \
@@ -232,7 +232,13 @@ jobs:
       run: |
         echo "Application deployed successfully!"
         echo "URL: http://$(aws cloudformation describe-stacks \
-          --stack-name laravel-app-stack \
+          --stack-name laravel-app-stack-new \
           --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDNS'].OutputValue" \
           --output text)"
         echo "WARNING: Stack will be automatically deleted after 30 minutes to avoid charges!"
+
+    - name: Schedule stack deletion
+      run: |
+        # Schedule stack deletion after 30 minutes
+        echo "Scheduling stack deletion after 30 minutes..."
+        aws cloudformation delete-stack --stack-name "$AWS_STACK_NAME"

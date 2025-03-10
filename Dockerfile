@@ -79,8 +79,8 @@ RUN mkdir -p /var/www/docker-entrypoint.d/nginx-conf
 COPY nginx/default.conf /var/www/docker-entrypoint.d/nginx-conf/default.conf
 
 # Set proper permissions for storage and cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/vendor
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache /var/www/vendor
 
 # Expose port 9000
 EXPOSE 9000

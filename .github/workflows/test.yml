@@ -27,7 +27,7 @@ jobs:
           echo "DB_PASSWORD=${{ secrets.DB_APP_ROOT_PASSWORD }}" >> .env
 
       - name: Build and start containers
-        run: docker compose up -d
+        run: docker compose up -d --build
         env:
           DB_ROOT_PASSWORD: ${{ secrets.DB_APP_ROOT_PASSWORD }}
 
@@ -35,6 +35,11 @@ jobs:
         run: |
           # Wait for MySQL to be ready
           docker compose exec -T db sh -c 'until mysqladmin ping -h"localhost" -uroot -p${{ secrets.DB_APP_ROOT_PASSWORD }} --silent; do sleep 1; done'
+
+      - name: Install Composer dependencies
+        run: |
+          docker compose exec -T app bash -c "cd /var/www && composer install --no-interaction --no-progress"
+          docker compose exec -T app bash -c "cd /var/www && composer dump-autoload --optimize"
 
       - name: Run migrations
         run: docker compose exec -T app php artisan migrate --force
@@ -46,7 +51,7 @@ jobs:
         if: failure()
         run: |
           echo "Docker logs:"
-          docker-compose logs
+          docker compose logs
 
       - name: Stop containers
         if: always()

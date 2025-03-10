@@ -318,9 +318,6 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 50
-        DeploymentCircuitBreaker:
-          Enable: true
-          Rollback: true
       LoadBalancers:
         - LoadBalancerName: !Ref ClassicLoadBalancer
           ContainerName: nginx

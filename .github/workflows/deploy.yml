@@ -114,60 +114,57 @@ jobs:
         ECR_REPO_URI="${{ steps.login-ecr.outputs.registry }}/laravel-app"
         IMAGE_TAG="${{ steps.docker-hash.outputs.hash }}"
         
-        # Check if stack exists and get its status
+        # Check if stack exists
         if aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" &> /dev/null; then
-          # Check the current stack status
+          # Stack exists, check its status
           CURRENT_STATUS=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].StackStatus" --output text)
           
           echo "Stack exists with status: $CURRENT_STATUS"
           
-          if [[ "$CURRENT_STATUS" == "CREATE_COMPLETE" || "$CURRENT_STATUS" == "UPDATE_COMPLETE" || "$CURRENT_STATUS" == "UPDATE_ROLLBACK_COMPLETE" ]]; then
-            # Stack exists and is in a stable state, update it
-            echo "Updating existing stack..."
-            aws cloudformation update-stack \
-              --stack-name "$AWS_STACK_NAME" \
-              --template-body file://cloudformation.yml \
-              --parameters \
-                ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI \
-                ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG \
-              --capabilities CAPABILITY_IAM \
-              || echo "No updates to be performed."
-          else
-            # Stack exists but is in an unstable state (like ROLLBACK_COMPLETE), delete it first
-            echo "Stack is in state $CURRENT_STATUS. Deleting and recreating..."
+          # If stack is in progress, wait for it to complete
+          if [[ "$CURRENT_STATUS" == *"_IN_PROGRESS" ]]; then
+            echo "Stack is in progress. Waiting for it to complete..."
             
-            # Delete the stack
+            # Wait for any in-progress operations to complete
+            if [[ "$CURRENT_STATUS" == "CREATE_IN_PROGRESS" ]]; then
+              aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME" || true
+            elif [[ "$CURRENT_STATUS" == "UPDATE_IN_PROGRESS" ]]; then
+              aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME" || true
+            elif [[ "$CURRENT_STATUS" == "DELETE_IN_PROGRESS" ]]; then
+              aws cloudformation wait stack-delete-complete --stack-name "$AWS_STACK_NAME" || true
+            else
+              # For other in-progress states, just wait a bit
+              echo "Waiting for stack operation to complete..."
+              sleep 60
+            fi
+            
+            # Check status again after waiting
+            CURRENT_STATUS=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "DELETED")
+            echo "Stack status after waiting: $CURRENT_STATUS"
+          fi
+          
+          # If stack still exists (wasn't deleted during waiting), delete it
+          if [[ "$CURRENT_STATUS" != "DELETED" ]]; then
+            echo "Deleting existing stack..."
             aws cloudformation delete-stack --stack-name "$AWS_STACK_NAME"
+            
             echo "Waiting for stack deletion to complete..."
             aws cloudformation wait stack-delete-complete --stack-name "$AWS_STACK_NAME"
-            
-            # Create a new stack
-            echo "Creating new stack..."
-            aws cloudformation create-stack \
-              --stack-name "$AWS_STACK_NAME" \
-              --template-body file://cloudformation.yml \
-              --parameters \
-                ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI \
-                ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG \
-              --capabilities CAPABILITY_IAM
-            
-            echo "Waiting for stack creation to complete..."
-            aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME"
           fi
-        else
-          # Stack doesn't exist, create it
-          echo "Stack doesn't exist. Creating new stack..."
-          aws cloudformation create-stack \
-            --stack-name "$AWS_STACK_NAME" \
-            --template-body file://cloudformation.yml \
-            --parameters \
-              ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI \
-              ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG \
-            --capabilities CAPABILITY_IAM
-          
-          echo "Waiting for stack creation to complete..."
-          aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME"
         fi
+        
+        # Create a new stack
+        echo "Creating new stack..."
+        aws cloudformation create-stack \
+          --stack-name "$AWS_STACK_NAME" \
+          --template-body file://cloudformation.yml \
+          --parameters \
+            ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI \
+            ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG \
+          --capabilities CAPABILITY_IAM
+        
+        echo "Waiting for stack creation to complete..."
+        aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME"
         
         # Check final stack status
         FINAL_STATUS=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].StackStatus" --output text)
@@ -178,10 +175,6 @@ jobs:
           echo "Stack operation failed with status: $FINAL_STATUS"
           exit 1
         fi
-
-    - name: Update ECS service
-      run: |
-        aws ecs update-service --cluster laravel-app-cluster --service laravel-app-service --force-new-deployment
 
     - name: Wait for ECS service to stabilize
       run: |

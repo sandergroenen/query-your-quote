@@ -330,6 +330,7 @@ Resources:
       ServiceName: laravel-app-service
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref ECSTaskDefinition
+      EnableExecuteCommand: true
       DesiredCount: 1
       LaunchType: EC2  # Explicitly set to EC2
       HealthCheckGracePeriodSeconds: 600  # Give containers time to start up

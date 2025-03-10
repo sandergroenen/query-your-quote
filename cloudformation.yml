@@ -261,8 +261,6 @@ Resources:
         InstanceType: t2.micro  # Free tier eligible
         IamInstanceProfile:
           Name: !Ref EC2InstanceProfile
-        SecurityGroupIds:
-          - !Ref ECSInstanceSecurityGroup
         NetworkInterfaces:
           - DeviceIndex: 0
             AssociatePublicIpAddress: true

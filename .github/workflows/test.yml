@@ -41,6 +41,11 @@ jobs:
           docker compose exec -T app bash -c "cd /var/www && composer install --no-interaction --no-progress"
           docker compose exec -T app bash -c "cd /var/www && composer dump-autoload --optimize"
 
+      - name: Install and build frontend assets
+        run: |
+          docker compose exec -T app bash -c "cd /var/www && npm install"
+          docker compose exec -T app bash -c "cd /var/www && npm run build"
+
       - name: Run migrations
         run: docker compose exec -T app php artisan migrate --force
 

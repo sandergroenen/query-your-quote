@@ -183,19 +183,17 @@ jobs:
       run: |
         aws ecs update-service --cluster laravel-app-cluster --service laravel-app-service --force-new-deployment
 
-    - name: Wait for service to stabilize
+    - name: Wait for ECS service to stabilize
       run: |
-        # Configure AWS CLI to increase max attempts and delay for the waiter
-        # Default is 40 attempts with 15 seconds delay (10 minutes total)
-        # Increasing to 80 attempts with 15 seconds delay (20 minutes total)
+        # Configure AWS CLI to increase wait timeout
         mkdir -p ~/.aws
         echo '[defaults]' > ~/.aws/config
         echo 'region = eu-central-1' >> ~/.aws/config
         echo '[service ecs]' >> ~/.aws/config
-        echo 'wait_timeout = 1200' >> ~/.aws/config
+        echo 'wait_timeout = 1800' >> ~/.aws/config
         
-        # Wait for service to stabilize with increased attempts
-        echo "Waiting for ECS service to stabilize (up to 20 minutes)..."
+        # Wait for service to stabilize with increased timeout (30 minutes)
+        echo "Waiting for ECS service to stabilize (up to 30 minutes)..."
         aws ecs wait services-stable \
           --cluster laravel-app-cluster \
           --services laravel-app-service

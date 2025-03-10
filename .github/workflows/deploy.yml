@@ -75,19 +75,28 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
+    - name: Calculate Docker image hash
+      id: docker-hash
+      run: |
+        # Create a hash based on the content of files that affect the Docker image
+        # Adjust the find command to include all relevant files for your application
+        DOCKER_HASH=$(find . -type f \( -name "Dockerfile" -o -name "*.php" -o -name "composer.*" -o -name "nginx/default.conf" \) -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
+        echo "::set-output name=hash::$DOCKER_HASH"
+        echo "Docker image hash: $DOCKER_HASH"
+
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: laravel-app
-        IMAGE_TAG: ${{ github.sha }}
+        IMAGE_TAG: ${{ steps.docker-hash.outputs.hash }}
       run: |
-        # Check if image with this SHA already exists in ECR
+        # Check if image with this hash already exists in ECR
         if aws ecr describe-images --repository-name $ECR_REPOSITORY --image-ids imageTag=$IMAGE_TAG &> /dev/null; then
-          echo "Image with tag $IMAGE_TAG already exists in ECR. Skipping build and push."
+          echo "Image with content hash $IMAGE_TAG already exists in ECR. Skipping build and push."
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
         else
-          echo "Building and pushing new image with tag $IMAGE_TAG..."
+          echo "Building and pushing new image with content hash $IMAGE_TAG..."
           # Build a docker container and push it to ECR
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
@@ -100,6 +109,10 @@ jobs:
       run: |
         # Set stack name
         AWS_STACK_NAME="laravel-app-stack"
+        
+        # Get the ECR repository URI
+        ECR_REPO_URI="${{ steps.login-ecr.outputs.registry }}/laravel-app"
+        IMAGE_TAG="${{ steps.docker-hash.outputs.hash }}"
         
         # Check if stack exists and get its status
         if aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" &> /dev/null; then
@@ -114,6 +127,9 @@ jobs:
             aws cloudformation update-stack \
               --stack-name "$AWS_STACK_NAME" \
               --template-body file://cloudformation.yml \
+              --parameters \
+                ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI \
+                ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG \
               --capabilities CAPABILITY_IAM \
               || echo "No updates to be performed."
           else
@@ -130,21 +146,28 @@ jobs:
             aws cloudformation create-stack \
               --stack-name "$AWS_STACK_NAME" \
               --template-body file://cloudformation.yml \
+              --parameters \
+                ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI \
+                ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG \
               --capabilities CAPABILITY_IAM
+            
+            echo "Waiting for stack creation to complete..."
+            aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME"
           fi
         else
           # Stack doesn't exist, create it
-          echo "Stack does not exist. Creating..."
+          echo "Stack doesn't exist. Creating new stack..."
           aws cloudformation create-stack \
             --stack-name "$AWS_STACK_NAME" \
             --template-body file://cloudformation.yml \
+            --parameters \
+              ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI \
+              ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG \
             --capabilities CAPABILITY_IAM
+          
+          echo "Waiting for stack creation to complete..."
+          aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME"
         fi
-        
-        # Wait for stack creation/update to complete
-        echo "Waiting for stack operation to complete..."
-        aws cloudformation wait stack-create-complete --stack-name "$AWS_STACK_NAME" || true
-        aws cloudformation wait stack-update-complete --stack-name "$AWS_STACK_NAME" || true
         
         # Check final stack status
         FINAL_STATUS=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME" --query "Stacks[0].StackStatus" --output text)

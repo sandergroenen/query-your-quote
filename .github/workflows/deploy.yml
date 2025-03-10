@@ -47,7 +47,7 @@ jobs:
         # Store database password
         aws ssm put-parameter \
           --name /laravel-app/db-password \
-          --value "rootpassword" \
+          --value "${{ secrets.DB_APP_ROOT_PASSWORD }}" \
           --type SecureString \
           --overwrite
 

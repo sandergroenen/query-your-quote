@@ -222,7 +222,7 @@ Resources:
         - !Ref RDSSecurityGroup
       MultiAZ: false
       PubliclyAccessible: false
-      BackupRetentionPeriod: 7
+      BackupRetentionPeriod: 0
       DeletionProtection: false
 
   # Classic Load Balancer

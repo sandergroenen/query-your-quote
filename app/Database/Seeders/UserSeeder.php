@@ -16,7 +16,7 @@ class UserSeeder extends BaseSeeder
     /**
      * Records that this seeder will create.
      *
-     * @var array
+     * @var array<int, array<string, mixed>>
      */
     protected array $records = [
         [
@@ -27,7 +27,7 @@ class UserSeeder extends BaseSeeder
     /**
      * Columns to check when determining if a record exists.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected array $checkColumns = ['email'];
 

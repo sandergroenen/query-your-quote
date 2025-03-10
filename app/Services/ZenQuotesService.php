@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Log;
 
 class ZenQuotesService
 {
-    protected $apiUrl = 'https://zenquotes.io/api/random';
+    protected string $apiUrl = 'https://zenquotes.io/api/random';
 
     /**
      * Get a random quote from ZenQuotes API
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    public function getRandomQuote()
+    public function getRandomQuote(): array
     {
         $startTime = microtime(true);
         

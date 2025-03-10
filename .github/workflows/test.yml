@@ -49,6 +49,9 @@ jobs:
       - name: Run migrations
         run: docker compose exec -T app php artisan migrate --force
 
+      - name: Run PHPStan
+        run: docker compose exec -T app bash -c "cd /var/www && composer phpstan"
+
       - name: Run tests
         run: docker compose exec -T app php artisan test
 

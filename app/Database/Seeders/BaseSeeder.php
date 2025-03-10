@@ -26,7 +26,7 @@ abstract class BaseSeeder extends Seeder
      * Records that this seeder will create.
      * Format: [['column' => 'value', ...], ...]
      *
-     * @var array
+     * @var array<int, array<string, mixed>>
      */
     protected array $records = [];
 
@@ -34,7 +34,7 @@ abstract class BaseSeeder extends Seeder
      * Columns to check when determining if a record exists.
      * If empty, all columns in the record will be checked.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected array $checkColumns = [];
 
@@ -83,7 +83,7 @@ abstract class BaseSeeder extends Seeder
     /**
      * Check if a specific record exists in the database.
      *
-     * @param array $record
+     * @param array<string, mixed> $record
      * @return bool
      */
     protected function recordExists(array $record): bool

@@ -7,11 +7,12 @@ use App\Services\DummyJsonService;
 use App\Services\ZenQuotesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
 
 class QuoteController extends Controller
 {
-    protected $dummyJsonService;
-    protected $zenQuotesService;
+    protected DummyJsonService $dummyJsonService;
+    protected ZenQuotesService $zenQuotesService;
 
     public function __construct(DummyJsonService $dummyJsonService, ZenQuotesService $zenQuotesService)
     {
@@ -25,7 +26,7 @@ class QuoteController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getRandomQuote(Request $request = null)
+    public function getRandomQuote(Request $request)
     {
         try {
             // Fetch quotes from both APIs with individual try/catch blocks

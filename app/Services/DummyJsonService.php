@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Log;
 
 class DummyJsonService
 {
-    protected $baseUrl = 'https://dummyjson.com';
-    protected $accessToken = null;
-    protected $currentUser = null;
-    protected $apiUrl = 'https://dummyjson.com/quotes/random';
+    protected string $baseUrl = 'https://dummyjson.com';
+    protected ?string $accessToken = null;
+    /** @var ?array<string, mixed> */
+    protected ?array $currentUser = null;
+    protected string $apiUrl = 'https://dummyjson.com/quotes/random';
 
     /**
      * Login to DummyJSON API and get access token using a random user
@@ -101,9 +102,9 @@ class DummyJsonService
     /**
      * Get a random quote from DummyJSON API
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    public function getRandomQuote()
+    public function getRandomQuote(): array
     {
         $startTime = microtime(true);
         
@@ -112,7 +113,7 @@ class DummyJsonService
             $this->login();
             
             // Make API request
-            $response = Http::withToken($this->accessToken)->timeout(5)->get($this->apiUrl);
+            $response = Http::withToken($this->accessToken ?? '')->timeout(5)->get($this->apiUrl);
             
             // Check if the request was successful
             if (!$response->successful()) {

@@ -23,10 +23,10 @@ class QuoteController extends Controller
     /**
      * Get random quotes from both DummyJSON and ZenQuotes APIs
      *
-     * @param \Illuminate\Http\Request $request
+     * @param \Illuminate\Http\Request|null $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getRandomQuote(Request $request)
+    public function getRandomQuote(?Request $request = null)
     {
         try {
             // Fetch quotes from both APIs with individual try/catch blocks

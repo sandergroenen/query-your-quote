@@ -2,6 +2,15 @@
 
 echo "Starting Laravel Docker environment..."
 
+# Check architecture for Apple Silicon compatibility
+ARCH=$(uname -m)
+if [[ "$ARCH" == "arm64" ]]; then
+    echo "Detected Apple Silicon (ARM64) architecture"
+    echo "Using platform-specific settings for compatibility"
+    # This helps with platform compatibility issues
+    export DOCKER_DEFAULT_PLATFORM=linux/amd64
+fi
+
 # Add debugging information
 echo "Current directory: $(pwd)"
 echo "Checking for .env file: $(ls -la .env* 2>/dev/null || echo '.env* files not found')"

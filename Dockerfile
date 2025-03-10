@@ -73,10 +73,10 @@ exec "$@"\n' > /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Create directory for nginx config
-RUN mkdir -p /docker-entrypoint.d/nginx-conf
+RUN mkdir -p /var/www/docker-entrypoint.d/nginx-conf
 
 # Copy nginx configuration
-COPY nginx/default.conf /docker-entrypoint.d/nginx-conf/default.conf
+COPY nginx/default.conf /var/www/docker-entrypoint.d/nginx-conf/default.conf
 
 # Set proper permissions for storage and cache
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache

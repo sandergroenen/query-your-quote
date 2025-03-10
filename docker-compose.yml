@@ -17,7 +17,8 @@ services:
       - GROUP_ID=${GID:-1000}
 
   db:
-    image: mysql:5.7
+    image: mysql:8.0
+    platform: linux/amd64  # Force x86 image on ARM Macs
     container_name: mysql-db
     restart: always
     environment:

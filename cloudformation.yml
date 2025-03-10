@@ -343,10 +343,12 @@ Resources:
           Command: 
             - "/bin/sh"
             - "-c"
-            - "mkdir -p /shared && cp -r /var/www/public/* /shared/"
+            - "mkdir -p /shared && cp -r /var/www/public/* /shared/ && mkdir -p /nginx-conf && cp -r /var/www/docker-entrypoint.d/nginx-conf/* /nginx-conf/"
           MountPoints:
             - SourceVolume: shared-data
               ContainerPath: /shared
+            - SourceVolume: nginx-conf
+              ContainerPath: /nginx-conf
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -415,6 +417,8 @@ Resources:
             - SourceVolume: shared-data
               ContainerPath: /var/www/public
               ReadOnly: true
+            - SourceVolume: nginx-conf
+              ContainerPath: /etc/nginx/conf.d
           Links:
             - app
           HealthCheck:
@@ -433,6 +437,7 @@ Resources:
               awslogs-stream-prefix: ecs
       Volumes:
         - Name: shared-data
+        - Name: nginx-conf
 
   # CloudWatch Logs
   CloudWatchLogsGroup:

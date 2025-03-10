@@ -441,7 +441,7 @@ Resources:
       LogGroupName: /ecs/laravel-app
       RetentionInDays: 7
 
-  # Auto-deletion after 30 minutes
+  # Auto-deletion after 60 minutes
   # Lambda Role for stack deletion
   StackDeletionRole:
     Type: AWS::IAM::Role
@@ -509,12 +509,12 @@ Resources:
         Variables:
           STACK_NAME: !Ref AWS::StackName
 
-  # EventBridge rule to trigger the Lambda function after 30 minutes
+  # EventBridge rule to trigger the Lambda function after 60 minutes
   StackDeletionRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: Trigger stack deletion after 30 minutes
-      ScheduleExpression: rate(30 minutes)
+      Description: Trigger stack deletion after 60 minutes
+      ScheduleExpression: rate(60 minutes)
       State: ENABLED
       Targets:
         - Arn: !GetAtt StackDeletionFunction.Arn
@@ -562,4 +562,4 @@ Outputs:
 
   AutoDeletionWarning:
     Description: Warning about auto-deletion
-    Value: "WARNING: This stack will automatically delete itself after 30 minutes to avoid unexpected charges!"
+    Value: "WARNING: This stack will automatically delete itself after 60 minutes to avoid unexpected charges!"

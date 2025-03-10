@@ -185,7 +185,21 @@ jobs:
 
     - name: Wait for service to stabilize
       run: |
-        aws ecs wait services-stable --cluster laravel-app-cluster --services laravel-app-service
+        # Configure AWS CLI to increase max attempts and delay for the waiter
+        # Default is 40 attempts with 15 seconds delay (10 minutes total)
+        # Increasing to 80 attempts with 15 seconds delay (20 minutes total)
+        mkdir -p ~/.aws
+        echo '[defaults]' > ~/.aws/config
+        echo 'region = eu-central-1' >> ~/.aws/config
+        echo '[service ecs]' >> ~/.aws/config
+        echo 'wait_timeout = 1200' >> ~/.aws/config
+        
+        # Wait for service to stabilize with increased attempts
+        echo "Waiting for ECS service to stabilize (up to 20 minutes)..."
+        aws ecs wait services-stable \
+          --cluster laravel-app-cluster \
+          --services laravel-app-service \
+          --max-attempts 80
 
     - name: Get EC2 instance ID
       id: get-instance

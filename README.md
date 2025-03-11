@@ -39,10 +39,15 @@ Query Your Quote is a web application that demonstrates modern web development p
    cd query-your-quote
    ```
 
-2. Run the start script:
+2. Linux/MacOS Run the start script:
    ```bash
    chmod +x scripts/start-local.sh
    ./scripts/start-local.sh
+   ```
+   Windows:
+   ```powershell
+   # Run in PowerShell
+   .\scripts\start-local.ps1
    ```
 
 That's it! The script will:
@@ -54,18 +59,23 @@ That's it! The script will:
 
 ### Accessing the Application
 
-Once the setup is complete, you can access the application at:
+Once the setup is complete, you can access the frontend application at:
 - **URL**: http://localhost
 - **Default credentials**:
   - Email: user@example.com
   - Password: password
+- the application features an api endpoint that can be called to get a random quote but provides theb above mentioned front-end for easy demonstration. If you want to access the api endpoint using curl or another tool directly please make a POST call to http://localhost/quotes/random which will return the quotes from the api directly
 
 ## Features
 
 - **Quote Generation**: Get random quotes with a single click
+- **Rate limited**: The api is rate limited by default to 1 per 10 seconds, the frontend has a visual representation of the rate limiting
 - **Performance Metrics**: View request time metrics with a dynamic speedometer
-- **User Authentication**: Register, login, and manage your profile
+- **User Authentication**: Register, login, and manage your profile (on frontend)
 - **Responsive Design**: Works on desktop and mobile devices
+- **Docker**: the application and all needed tools are run inside docker containers
+- **Github actions testrun & deployment on AMAZON**: aside from being able to run the application locally the applications will run tests automatically on github actions upon pushing code and also deploy to amazon aws ecs
+
 
 ## Development
 
@@ -79,9 +89,19 @@ Once the setup is complete, you can access the application at:
 
 ### Key Components
 
+#### application logic
 - `RandomQuote.jsx` - Main component for displaying quotes
 - `DummyJsonService.php` - Service for interacting with the DummyJSON API
 - `QuoteController.php` - API controller for quote-related endpoints
+
+#### infrastructure
+- `docker-compose.yml` - Docker compose file for setting up development environment
+- Dockerfile` - Dockerfile for building the application container
+- `cloudformation.yml` - AWS CloudFormation template for setting up production environment in AWS ECS
+- `.github/deployment.yml` - Github actions deployment file for automatic build pipeline to deploy cloudformation stack on AWS
+- `.github/test.yml` - Github actions deployment file for automatic build pipeline to deploy cloudformation stack on AWS
+
+
 
 ## AWS Deployment
 

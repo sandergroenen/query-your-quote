@@ -124,6 +124,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       Policies:
         - PolicyName: ECSTaskRolePolicy
           PolicyDocument:
@@ -133,6 +134,13 @@ Resources:
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
                 Resource: '*'
 
   # ECS Task Execution Role
@@ -374,6 +382,7 @@ Resources:
       NetworkMode: bridge  # Bridge mode is required for Classic Load Balancer with EC2 launch type
       ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
       TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      EnableExecuteCommand: true
       ContainerDefinitions:
         # Initialization container to copy static files to shared volume
         - Name: init

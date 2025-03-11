@@ -224,22 +224,38 @@ jobs:
             --cluster laravel-app-cluster \
             --tasks $TASK_ARN
           
-          # Additional wait for container initialization
+          # Additional wait for container initialization - increased to 2 minutes
           echo "Task is running, waiting for container initialization..."
-          sleep 60
+          sleep 120
           
-          # Try to run migrations using ECS Execute Command
+          # Try to run migrations using ECS Execute Command with retries
           echo "Running database migrations"
-          if ! aws ecs execute-command \
-            --cluster laravel-app-cluster \
-            --task $TASK_ARN \
-            --container app \
-            --command "/bin/sh -c 'cd /var/www && php artisan migrate --force --seed'" \
-            --interactive; then
-            
-            echo "Migration command failed, will try an alternative approach"
-            
-            # Alternative approach: Get instance ID and SSH into it
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if aws ecs execute-command \
+              --cluster laravel-app-cluster \
+              --task $TASK_ARN \
+              --container app \
+              --command "/bin/sh -c 'cd /var/www && php artisan migrate --force --seed'" \
+              --interactive; then
+              echo "Migrations completed successfully"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Migration attempt $RETRY_COUNT failed, retrying in 30 seconds..."
+                sleep 30
+              else
+                echo "All migration attempts via ECS execute-command failed, trying alternative approach"
+              fi
+            fi
+          done
+          
+          # If we've exhausted retries, use SSM as fallback
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            # Get instance ID
             INSTANCE_ID=$(aws ec2 describe-instances \
               --filters "Name=tag:aws:autoscaling:groupName,Values=$(aws cloudformation describe-stack-resources \
                 --stack-name laravel-app-stack \
@@ -251,15 +267,33 @@ jobs:
             
             echo "Will try to run migrations via SSM on instance $INSTANCE_ID"
             
-            # Run command via SSM
-            aws ssm send-command \
+            # Run command via SSM and capture command ID
+            COMMAND_ID=$(aws ssm send-command \
               --instance-ids $INSTANCE_ID \
               --document-name "AWS-RunShellScript" \
-              --parameters commands="docker exec \$(docker ps -q --filter name=app) php artisan migrate --force" \
+              --parameters commands="docker exec \$(docker ps -q --filter name=ecs-laravel-app.*-app) php artisan migrate --force --seed" \
               --comment "Run Laravel migrations" \
-              --output text
+              --output text | grep COMMAND | awk '{print $2}')
             
-            echo "Migration command sent via SSM"
+            echo "Migration command sent via SSM with ID: $COMMAND_ID"
+            
+            # Wait for SSM command to complete
+            echo "Waiting for SSM command to complete..."
+            aws ssm wait command-executed --command-id $COMMAND_ID --instance-id $INSTANCE_ID
+            
+            # Check command status
+            COMMAND_STATUS=$(aws ssm list-command-invocations \
+              --command-id $COMMAND_ID \
+              --details \
+              --query "CommandInvocations[0].Status" \
+              --output text)
+            
+            if [ "$COMMAND_STATUS" = "Success" ]; then
+              echo "Migrations completed successfully via SSM"
+            else
+              echo "Migration via SSM failed with status: $COMMAND_STATUS"
+              echo "Please check the AWS console for more details"
+            fi
           fi
         else
           echo "No ECS tasks found, skipping migrations"

@@ -428,7 +428,7 @@ Resources:
             - Name: DB_USERNAME
               Value: root
             - Name: SESSION_DRIVER
-              Value: database
+              Value: file
           Secrets:
             - Name: APP_KEY
               ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/laravel-app/app-key

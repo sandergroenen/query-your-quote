@@ -8,11 +8,16 @@ A modern web application that generates random quotes and displays performance m
 
 Query Your Quote is a web application that demonstrates modern web development practices using Laravel and React. The application:
 
-- Fetches random quotes from the DummyJSON API
-- Displays quotes with author attribution
+- Fetches random quotes from the **DummyJSON API** and **Zenquotes API**
+- Retrieval and usage of **bearer token authorization** (Dummyjson)
 - Shows real-time request performance metrics with a dynamic speedometer
-- Provides user authentication and profile management
+- Provides frontend user authentication and profile management
+- **Rate limited**: The api is rate limited by default to 1 per 10 seconds, the frontend has a visual demo representation of the rate limiting
 - Demonstrates proper API integration and error handling
+- Provides **local dev setup** as well as a **full CI/CD pipeline** for automatic deployment to AWS ECS with Free tier eligble resources
+- **Responsive Design**: Works on desktop and mobile devices
+- **Github actions testrun & deployment on AWS**: aside from being able to run the application locally the applications will run tests automatically on github actions upon pushing code and also deploy to amazon aws ecs using cloudstack IaaS icm with aws cli commands
+
 
 ## Tech Stack
 
@@ -20,9 +25,9 @@ Query Your Quote is a web application that demonstrates modern web development p
 - **Frontend**: React 18 with Inertia.js
 - **Styling**: Tailwind CSS
 - **Development**: Docker, Vite
-- **API Integration**: DummyJSON API
+- **API Integration**: DummyJSON API & Zenquotes API
 - **Authentication**: Laravel Breeze
-- **Deployment**: AWS ECS, ECR, CloudFormation
+- **Deployment**: AWS ECS, ECR, Cloudstack, Github Actions
 
 ## Getting Started
 
@@ -30,6 +35,7 @@ Query Your Quote is a web application that demonstrates modern web development p
 
 - Docker Engine installed and running
 - Git
+- Linux/MacOS or Windows
 
 ### Installation
 
@@ -68,13 +74,6 @@ Once the setup is complete, you can access the frontend application at:
 
 ## Features
 
-- **Quote Generation**: Get random quotes with a single click
-- **Rate limited**: The api is rate limited by default to 1 per 10 seconds, the frontend has a visual representation of the rate limiting
-- **Performance Metrics**: View request time metrics with a dynamic speedometer
-- **User Authentication**: Register, login, and manage your profile (on frontend)
-- **Responsive Design**: Works on desktop and mobile devices
-- **Docker**: the application and all needed tools are run inside docker containers
-- **Github actions testrun & deployment on AMAZON**: aside from being able to run the application locally the applications will run tests automatically on github actions upon pushing code and also deploy to amazon aws ecs
 
 
 ## Development
@@ -135,7 +134,8 @@ This project includes a complete CI/CD pipeline for deploying to AWS ECS (Elasti
    - `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
    - `AWS_REGION`: Your preferred AWS region (e.g., `us-east-1`)
    - `DB_APP_ROOT_PASSWORD`: A secure password for the database
-
+   
+   ** note that the provided access key should have proper permissions to create and manage the necessary AWS resources**
 3. **Initial Deployment**:
    - Push to the `main` branch or manually trigger the workflow from the Actions tab
    - The GitHub Actions workflow will:

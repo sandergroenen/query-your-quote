@@ -46,7 +46,7 @@ class QuoteApiTest extends TestCase
         });
 
         // Make request to the API endpoint
-        $response = $this->getJson('/api/quotes/random');
+        $response = $this->getJson('/api/quotes/random?rateLimit=100');
 
         // Assert response status and structure
         $response->assertStatus(200)
@@ -112,7 +112,7 @@ class QuoteApiTest extends TestCase
         });
 
         // Make request to the API endpoint
-        $response = $this->getJson('/api/quotes/random');
+        $response = $this->getJson('/api/quotes/random?rateLimit=100');
 
         // Assert response status and structure
         $response->assertStatus(200)
@@ -180,7 +180,7 @@ class QuoteApiTest extends TestCase
         });
 
         // Make request to the API endpoint
-        $response = $this->getJson('/api/quotes/random');
+        $response = $this->getJson('/api/quotes/random?rateLimit=100');
 
         // Assert response status
         $response->assertStatus(200);
@@ -228,7 +228,7 @@ class QuoteApiTest extends TestCase
         });
 
         // Make request without authentication
-        $response = $this->getJson('/api/quotes/random');
+        $response = $this->getJson('/api/quotes/random?rateLimit=100');
 
         // Assert response is successful
         $response->assertStatus(200);

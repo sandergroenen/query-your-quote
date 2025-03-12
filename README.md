@@ -62,7 +62,7 @@ That's it! The script will:
 Once the setup is complete, you can access the frontend application at:
 - **URL**: http://localhost
 - **Default credentials**:
-  - Email: user@example.com
+  - Email: test@example.com
   - Password: password
 - the application features an api endpoint that can be called to get a random quote but provides theb above mentioned front-end for easy demonstration. If you want to access the api endpoint using curl or another tool directly please make a POST call to http://localhost/quotes/random which will return the quotes from the api directly
 
@@ -86,6 +86,7 @@ Once the setup is complete, you can access the frontend application at:
 - `resources/js/Components/Quote/` - Quote-related components
 - `routes/` - API and web routes
 - `scripts/` - Utility scripts for development
+- `scripts/` - All unit, feature and integration tests
 
 ### Key Components
 
@@ -93,6 +94,7 @@ Once the setup is complete, you can access the frontend application at:
 - `RandomQuote.jsx` - Main component for displaying quotes
 - `DummyJsonService.php` - Service for interacting with the DummyJSON API
 - `QuoteController.php` - API controller for quote-related endpoints
+- `routes/api.php` & `routes/web.php` - registering of routes for api and web including authentication and ratelimiting middleware
 
 #### infrastructure
 - `docker-compose.yml` - Docker compose file for setting up development environment
@@ -101,7 +103,10 @@ Once the setup is complete, you can access the frontend application at:
 - `.github/deployment.yml` - Github actions deployment file for automatic build pipeline to deploy cloudformation stack on AWS
 - `.github/test.yml` - Github actions deployment file for automatic build pipeline to deploy cloudformation stack on AWS
 
+## Running tests
 
+- To run all unit, integration and feature tests you can use this command: `docker compose exec app php artisan test`
+- To run the PHP Static ANalyser (PHPSTAN), which checks all files for bugs without running tests at various levels of strictness (https://phpstan.org/), use this command: `docker compose exec app composer phpstan` 
 
 ## AWS Deployment
 

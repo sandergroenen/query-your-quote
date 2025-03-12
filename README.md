@@ -16,7 +16,11 @@ Query Your Quote is a web application that demonstrates modern web development p
 - Demonstrates proper API integration and error handling
 - Provides **local dev setup** as well as a **full CI/CD pipeline** for automatic deployment to AWS ECS with Free tier eligble resources
 - **Responsive Design**: Works on desktop and mobile devices
-- **Github actions testrun & deployment on AWS**: aside from being able to run the application locally the applications will run tests automatically on github actions upon pushing code and also deploy to amazon aws ecs using cloudstack IaaS icm with aws cli commands
+- **Github actions testrun & deployment on AWS**: aside from being able to run the application locally the applications will run tests automatically on github actions upon pushing code and also deploy to amazon aws ecs using cloudsformation IaaS icm with aws cli commands
+
+**Example deployment run github actions output**: https://github.com/sandergroenen/query-your-quote/actions/runs/13813761112/job/38641513974
+
+**Example test run github actions output**: https://github.com/sandergroenen/query-your-quote/actions/runs/13813761104
 
 
 ## Tech Stack
@@ -27,7 +31,7 @@ Query Your Quote is a web application that demonstrates modern web development p
 - **Development**: Docker, Vite
 - **API Integration**: DummyJSON API & Zenquotes API
 - **Authentication**: Laravel Breeze
-- **Deployment**: AWS ECS, ECR, Cloudstack, Github Actions
+- **Deployment**: AWS ECS, ECR, Cloudformation, Github Actions
 
 ## Getting Started
 
@@ -162,6 +166,9 @@ This project includes a complete CI/CD pipeline for deploying to AWS ECS (Elasti
    - After deployment completes, find the load balancer URL in the AWS Console
    - The URL will be available in the CloudFormation stack outputs
 
+6. **Auto deletion of resources**:
+   - The deployed cloudformation stack includes a deletion policy that will delete all resources after 60 minutes using a lambda function, please make sure the deletion process is completed successfully and optionally delete any leftover resources manually
+ 
 ### Monitoring and Troubleshooting
 
 - **Logs**: Application logs are sent to CloudWatch

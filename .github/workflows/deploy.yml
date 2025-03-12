@@ -155,7 +155,7 @@ jobs:
         
         # Create a new stack
         echo "Creating new stack..."
-        aws cloudformation create-stack 
+        aws cloudformation create-stack \
           --stack-name "$AWS_STACK_NAME" \
           --template-body file://cloudformation.yml \
           --parameters \

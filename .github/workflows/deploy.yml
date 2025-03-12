@@ -37,18 +37,18 @@ jobs:
         # Generate a random app key if it doesn't exist
         if ! aws ssm get-parameter --name /laravel-app/app-key 2>/dev/null; then
           APP_KEY=$(openssl rand -base64 32)
-          aws ssm put-parameter 
-            --name /laravel-app/app-key 
-            --value "base64:$APP_KEY" 
-            --type SecureString 
+          aws ssm put-parameter \
+            --name /laravel-app/app-key \
+            --value "base64:$APP_KEY" \
+            --type SecureString \
             --overwrite
         fi
         
         # Store database password
-        aws ssm put-parameter 
-          --name /laravel-app/db-password 
-          --value "${{ secrets.DB_APP_ROOT_PASSWORD }}" 
-          --type SecureString 
+        aws ssm put-parameter \
+          --name /laravel-app/db-password \
+          --value "${{ secrets.DB_APP_ROOT_PASSWORD }}" \
+          --type SecureString \
           --overwrite
 
     - name: Create ECS Service Linked Role if it doesn't exist
@@ -156,11 +156,11 @@ jobs:
         # Create a new stack
         echo "Creating new stack..."
         aws cloudformation create-stack 
-          --stack-name "$AWS_STACK_NAME" 
-          --template-body file://cloudformation.yml 
-          --parameters 
-            ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI 
-            ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG 
+          --stack-name "$AWS_STACK_NAME" \
+          --template-body file://cloudformation.yml \
+          --parameters \
+            ParameterKey=ECRRepositoryUri,ParameterValue=$ECR_REPO_URI \
+            ParameterKey=ImageTag,ParameterValue=$IMAGE_TAG \
           --capabilities CAPABILITY_IAM
         
         echo "Waiting for stack creation to complete..."
@@ -187,36 +187,36 @@ jobs:
         
         # Wait for service to stabilize with increased timeout (30 minutes)
         echo "Waiting for ECS service to stabilize (up to 30 minutes)..."
-        aws ecs wait services-stable 
-          --cluster laravel-app-cluster 
+        aws ecs wait services-stable \
+          --cluster laravel-app-cluster \
           --services laravel-app-service
 
     - name: Enable ECS Execute Command
       run: |
         # Enable execute command on the ECS service
         echo "Enabling ECS Execute Command..."
-        aws ecs update-service 
-          --cluster laravel-app-cluster 
-          --service laravel-app-service 
+        aws ecs update-service \
+          --cluster laravel-app-cluster \
+          --service laravel-app-service \
           --enable-execute-command
         
         # Wait for service to stabilize after update
         echo "Waiting for service to stabilize after enabling execute command..."
-        aws ecs wait services-stable 
-          --cluster laravel-app-cluster 
+        aws ecs wait services-stable \
+          --cluster laravel-app-cluster \
           --services laravel-app-service
 
     - name: Get EC2 instance ID
       id: get-instance
       run: |
         # Get the EC2 instance ID from the Auto Scaling Group
-        INSTANCE_ID=$(aws autoscaling describe-auto-scaling-groups 
-          --auto-scaling-group-names $(aws cloudformation describe-stack-resources 
-            --stack-name laravel-app-stack 
-            --logical-resource-id ECSAutoScalingGroup 
-            --query "StackResources[0].PhysicalResourceId" 
-            --output text) 
-          --query "AutoScalingGroups[0].Instances[0].InstanceId" 
+        INSTANCE_ID=$(aws autoscaling describe-auto-scaling-groups \
+          --auto-scaling-group-names $(aws cloudformation describe-stack-resources \
+            --stack-name laravel-app-stack \
+            --logical-resource-id ECSAutoScalingGroup \
+            --query "StackResources[0].PhysicalResourceId" \
+            --output text) \
+          --query "AutoScalingGroups[0].Instances[0].InstanceId" \
           --output text)
         echo "::set-output name=instance-id::$INSTANCE_ID"
         echo "EC2 Instance ID: $INSTANCE_ID"
@@ -224,10 +224,10 @@ jobs:
     - name: Run database migrations
       run: |
         # Get the ECS task ARN
-        TASK_ARN=$(aws ecs list-tasks 
-          --cluster laravel-app-cluster 
-          --service-name laravel-app-service 
-          --query 'taskArns[0]' 
+        TASK_ARN=$(aws ecs list-tasks \
+          --cluster laravel-app-cluster \
+          --service-name laravel-app-service \ 
+          --query 'taskArns[0]' \
           --output text)
         
         if [ "$TASK_ARN" != "None" ] && [ ! -z "$TASK_ARN" ]; then
@@ -235,8 +235,8 @@ jobs:
           echo "Waiting for container to be ready..."
           
           # Wait for task to reach RUNNING state
-          aws ecs wait tasks-running 
-            --cluster laravel-app-cluster 
+          aws ecs wait tasks-running \
+            --cluster laravel-app-cluster \
             --tasks $TASK_ARN
           
           # Additional wait for container initialization - increased to 2 minutes
@@ -249,12 +249,12 @@ jobs:
           RETRY_COUNT=0
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if aws ecs execute-command 
-              --cluster laravel-app-cluster 
-              --task $TASK_ARN 
-              --container app 
-              --command "/bin/sh -c 'cd /var/www && php artisan migrate --force --seed'" 
-              --interactive; then
+            if aws ecs execute-command \
+              --cluster laravel-app-cluster \ 
+              --task $TASK_ARN \
+              --container app \
+              --command "/bin/sh -c 'cd /var/www && php artisan migrate --force --seed'" \
+              --interactive; then 
               echo "Migrations completed successfully"
               break
             else
@@ -271,23 +271,22 @@ jobs:
           # If we've exhausted retries, use SSM as fallback
           if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
             # Get instance ID
-            INSTANCE_ID=$(aws ec2 describe-instances 
-              --filters "Name=tag:aws:autoscaling:groupName,Values=$(aws cloudformation describe-stack-resources 
-                --stack-name laravel-app-stack 
-                --logical-resource-id ECSAutoScalingGroup 
-                --query "StackResources[0].PhysicalResourceId" 
-                --output text)" 
-              --query "Reservations[0].Instances[0].InstanceId" 
+            INSTANCE_ID=$(aws ec2 describe-instances \
+              --filters "Name=tag:aws:autoscaling:groupName,Values=$(aws cloudformation describe-stack-resources \
+                --stack-name laravel-app-stack \
+                --logical-resource-id ECSAutoScalingGroup \
+                --query "StackResources[0].PhysicalResourceId" \
+                --output text)" \
+              --query "Reservations[0].Instances[0].InstanceId" \
               --output text)
-            
             echo "Will try to run migrations via SSM on instance $INSTANCE_ID"
             
             # Run command via SSM and capture command ID
-            COMMAND_ID=$(aws ssm send-command 
-              --instance-ids $INSTANCE_ID 
-              --document-name "AWS-RunShellScript" 
-              --parameters commands="docker exec \$(docker ps -q --filter name=ecs-laravel-app.*-app) php artisan migrate --force --seed" 
-              --comment "Run Laravel migrations" 
+            COMMAND_ID=$(aws ssm send-command \
+              --instance-ids $INSTANCE_ID \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands="docker exec \$(docker ps -q --filter name=ecs-laravel-app.*-app) php artisan migrate --force --seed" \
+              --comment "Run Laravel migrations" \
               --output text | grep COMMAND | awk '{print $2}')
             
             echo "Migration command sent via SSM with ID: $COMMAND_ID"
@@ -297,10 +296,10 @@ jobs:
             aws ssm wait command-executed --command-id $COMMAND_ID --instance-id $INSTANCE_ID
             
             # Check command status
-            COMMAND_STATUS=$(aws ssm list-command-invocations 
-              --command-id $COMMAND_ID 
-              --details 
-              --query "CommandInvocations[0].Status" 
+            COMMAND_STATUS=$(aws ssm list-command-invocations \
+              --command-id $COMMAND_ID \
+              --details \
+              --query "CommandInvocations[0].Status" \
               --output text)
             
             if [ "$COMMAND_STATUS" = "Success" ]; then
@@ -317,9 +316,9 @@ jobs:
     - name: Print application URL
       run: |
         # Get the load balancer DNS name
-        LB_DNS=$(aws cloudformation describe-stacks 
-          --stack-name laravel-app-stack 
-          --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDNS'].OutputValue" 
+        LB_DNS=$(aws cloudformation describe-stacks \
+          --stack-name laravel-app-stack \
+          --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDNS'].OutputValue" \
           --output text)
         
         # Split the output to avoid GitHub Actions masking

@@ -21,6 +21,8 @@ Route::get('/health', function () {
     return response('OK', 200);
 });
 
+
+
 Route::get('/', function () {
     return Inertia::render('Quotes', [
         'canLogin' => Route::has('login'),
@@ -28,7 +30,7 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-})->middleware(['auth', 'verified'])->name('quotes');
+})->middleware(['auth', 'verified'])->name('quotes')->name('dashboard');
 
 
 Route::middleware('auth')->group(function () {

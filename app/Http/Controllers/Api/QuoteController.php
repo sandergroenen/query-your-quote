@@ -14,10 +14,20 @@ class QuoteController extends Controller
     protected DummyJsonService $dummyJsonService;
     protected ZenQuotesService $zenQuotesService;
 
+
     public function __construct(DummyJsonService $dummyJsonService, ZenQuotesService $zenQuotesService)
     {
         $this->dummyJsonService = $dummyJsonService;
         $this->zenQuotesService = $zenQuotesService;
+    }
+
+    function getFastestQuote(?Request $request = null) {
+        $randomQuotes = $this->getRandomQuote($request)->getData(true);    
+        $whoIsFastest = $randomQuotes['dummyJson']['isFastest'] ? 'dummyJson' : ($randomQuotes['zenQuotes']['isFastest'] ? 'zenQuotes' : 'dummyJson');
+        return response()->json([
+            'whoIsFastest' => $whoIsFastest,
+            'quote' => $randomQuotes[$whoIsFastest]            
+        ]);
     }
 
     /**

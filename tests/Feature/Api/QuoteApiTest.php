@@ -2,9 +2,14 @@
 
 namespace Tests\Feature\Api;
 
+use App\Http\Controllers\Api\QuoteController;
+use App\Http\Middleware\QuoteRateLimiter;
 use App\Services\DummyJsonService;
 use App\Services\ZenQuotesService;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Http;
 use Mockery;
 use Tests\TestCase;
@@ -233,4 +238,47 @@ class QuoteApiTest extends TestCase
         // Assert response is successful
         $response->assertStatus(200);
     }
+
+
+    
+    #[Test]
+    public function it_will_hit_ratelimit_according_to_parameters(){
+ 
+        //allow stray requests otherwise the pool method will throw an exception
+        Http::allowStrayRequests();
+
+        //do not mock the services, we want to test the rate limiter
+        // Make request without authentication
+        $simultaneousRequests = 5;
+        $rateLimiter = new QuoteRateLimiter(app('Illuminate\Cache\RateLimiter'));
+        foreach (range(1, 5) as $ratelimit) {
+            $rateLimiter->resetAttempts();
+            $hasThrown = false;
+
+            try {
+                $responses = Http::pool(function (Pool $pool) use ($simultaneousRequests, $ratelimit) {
+                    for ($i = 1; $i < $simultaneousRequests + 1; $i++) {
+                        $pool->withOptions([
+                            'http_errors' => false // This prevents Guzzle from throwing exceptions on HTTP errors
+                        ])->get("http://host.docker.internal/api/quotes/random?rateLimit=$ratelimit");
+                    }
+                });
+            } catch (\Throwable $e) {
+                $hasThrown = true;
+            }
+            $this->assertFalse($hasThrown);
+            $rateLimithit = 0;
+            foreach ($responses as $response) {
+                if ($response->status() == 429) {
+                    $rateLimithit++;
+                } else {
+                    $this->assertEquals(200, $response->status());
+                }
+            }
+            $this->assertEquals($simultaneousRequests, count($responses));
+            $this->assertEquals($simultaneousRequests - $ratelimit, $rateLimithit);
+        }                
+    
+    }
+
 }

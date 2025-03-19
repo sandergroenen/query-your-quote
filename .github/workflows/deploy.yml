@@ -1,8 +1,9 @@
 name: Deploy to Amazon ECS
 
 on:
-  push:
-    branches: [ main ]
+  # disable for now to prevent accidental deployment costs on aws
+  # push:
+  #   branches: [ main ]
   workflow_dispatch:
     inputs:
       reason:

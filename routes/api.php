@@ -34,3 +34,5 @@ Route::get('/quotes/random', function (Request $request) {
         return app()->make(QuoteController::class)->getRandomQuote($request);
     }, $rateLimit, $decaySeconds);
 });
+
+Route::get('/quotes/fastest', [QuoteController::class, 'getFastestQuote']);

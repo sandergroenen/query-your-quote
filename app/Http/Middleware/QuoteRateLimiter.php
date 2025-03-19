@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -122,8 +123,8 @@ class QuoteRateLimiter
     protected function addHeaders(Response $response, $maxAttempts, $remainingAttempts, $retryAfter = null)
     {
         $response->headers->add([
-            'X-RateLimit-Limit' => $maxAttempts,
             'X-RateLimit-Remaining' => $remainingAttempts,
+            'X-RateLimit-Limit' => $maxAttempts,
         ]);
 
         if (! is_null($retryAfter)) {
@@ -134,5 +135,10 @@ class QuoteRateLimiter
         }
 
         return $response;
+    }
+
+    public function resetAttempts(){
+        // Clear all cache
+        Cache::flush();
     }
 }

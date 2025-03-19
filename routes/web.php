@@ -30,7 +30,7 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-})->middleware(['auth', 'verified'])->name('quotes')->name('dashboard');
+})->middleware(['auth', 'verified'])->name('quotes');
 
 
 Route::middleware('auth')->group(function () {

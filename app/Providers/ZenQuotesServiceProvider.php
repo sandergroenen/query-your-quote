@@ -18,11 +18,6 @@ class ZenQuotesServiceProvider extends ServiceProvider
             return new ZenQuotesService();
         });
     }
-
-    public function test_my_command(){
-        p.__
-        PHPUnit::assertTrue(true);
-    }
     /**
      * Bootstrap services.
      */

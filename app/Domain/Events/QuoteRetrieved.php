@@ -2,10 +2,9 @@
 
 namespace App\Domain\Events;
 
-use App\Domain\Dto\QuotesDto;
+use App\Domain\Dto\QuoteDto;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -17,7 +16,7 @@ class QuoteRetrieved implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct(public QuotesDto $quotes)
+    public function __construct(public QuoteDto $quote)
     {
         //
     }

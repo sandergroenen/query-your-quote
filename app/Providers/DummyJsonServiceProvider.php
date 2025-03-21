@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Services\DummyJsonService;
+use App\Domain\Quotes\DummyJsonService;
 use Illuminate\Support\ServiceProvider;
 
 class DummyJsonServiceProvider extends ServiceProvider
@@ -12,7 +12,7 @@ class DummyJsonServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(DummyJsonService::class, function ($app) {
+        $this->app->singleton(DummyJsonService::class, function () {
             return new DummyJsonService();
         });
     }

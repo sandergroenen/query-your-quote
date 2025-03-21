@@ -2,10 +2,8 @@
 
 namespace App\Providers;
 
-use App\Services\ZenQuotesService;
-use Illuminate\Support\Facades\Http;
+use App\Domain\Quotes\ZenQuotesService;
 use Illuminate\Support\ServiceProvider;
-use PHPUnit\Event\Runtime\PHPUnit;
 
 class ZenQuotesServiceProvider extends ServiceProvider
 {
@@ -14,7 +12,7 @@ class ZenQuotesServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(ZenQuotesService::class, function ($app) {
+        $this->app->singleton(ZenQuotesService::class, function () {
             return new ZenQuotesService();
         });
     }

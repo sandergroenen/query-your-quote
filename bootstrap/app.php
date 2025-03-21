@@ -5,8 +5,9 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Providers\DummyJsonServiceProvider;
 use App\Http\Middleware\QuoteRateLimiter;
+use App\Providers\BroadcastServiceProvider;
+use App\Providers\QuoteHandlerProvider;
 use App\Providers\ZenQuotesServiceProvider;
-use App\Services\ZenQuotesService;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -32,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
         DummyJsonServiceProvider::class,
         ZenQuotesServiceProvider::class,
+        QuoteHandlerProvider::class,
+        BroadcastServiceProvider::class,
     ])
     ->withEvents(discover: [
         __DIR__.'/../app/Domain/Listeners',

@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Services;
 
-use App\Services\DummyJsonService;
+use App\Domain\Quotes\DummyJsonService;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;

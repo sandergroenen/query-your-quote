@@ -1,5 +1,7 @@
 <?php
 
+use App\Domain\Dto\QuoteDto;
+use App\Domain\Dto\QuoteJsonResponse;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -40,23 +42,17 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/test-broadcast', function () {
-    $dummyJsonQuote = [
-        'quote' => 'Test quote from DummyJSON',
-        'author' => 'Test Author',
-        'timeTaken' => 0,
-        'isFastest' => true
-    ];
+    $testquote = new QuoteJsonResponse(
+        'Test quote from LARAVEL ENDPOINT',
+        'testquote',
+        'Test Author',
+        0,
+        'test user'
+    );
     
-    $zenQuotesQuote = [
-        'quote' => 'Test quote from ZenQuotes',
-        'author' => 'Test Author',
-        'timeTaken' => 0,
-        'isFastest' => false
-    ];
-    
-    event(new \App\Domain\Events\QuoteRetrieved(new \App\Domain\Dto\QuotesDto($dummyJsonQuote, $zenQuotesQuote)));
+    event(new QuoteRetrieved(new QuoteDto($testquote)));
     
     return 'Event dispatched!';
 });
-
+    
 require __DIR__.'/auth.php';

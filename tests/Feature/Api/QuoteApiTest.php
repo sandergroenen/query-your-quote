@@ -4,8 +4,8 @@ namespace Tests\Feature\Api;
 
 use App\Http\Controllers\Api\QuoteController;
 use App\Http\Middleware\QuoteRateLimiter;
-use App\Services\DummyJsonService;
-use App\Services\ZenQuotesService;
+use App\Domain\Quotes\DummyJsonService;
+use App\Domain\Quotes\ZenQuotesService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Foundation\Testing\RefreshDatabase;

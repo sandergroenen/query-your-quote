@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Domain\Dto\QuotesDto;
-use App\Domain\Events\QuoteRetrieved;
+use App\Domain\Quotes\QuoteHandler;
 use App\Http\Controllers\Controller;
-use App\Services\DummyJsonService;
-use App\Services\ZenQuotesService;
+use App\Domain\Quotes\DummyJsonService;
+use App\Domain\Quotes\ZenQuotesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
@@ -23,59 +22,34 @@ class QuoteController extends Controller
         $this->zenQuotesService = $zenQuotesService;
     }
 
-    function getFastestQuote(?Request $request = null) {
-        $randomQuotes = $this->getRandomQuote($request)->getData(true);    
-        $whoIsFastest = $randomQuotes['dummyJson']['isFastest'] ? 'dummyJson' : ($randomQuotes['zenQuotes']['isFastest'] ? 'zenQuotes' : 'dummyJson');
-        return response()->json([
-            'whoIsFastest' => $whoIsFastest,
-            'quote' => $randomQuotes[$whoIsFastest]            
-        ]);
-    }
 
     /**
-     * Get random quotes from both DummyJSON and ZenQuotes APIs
-     *
+     * Get random quotes from all availble quote endpoints      *
+     * @param \QuoteHandler|null $request
      * @param \Illuminate\Http\Request|null $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getRandomQuote(?Request $request = null)
+    public function handle(?Request $request = null, QuoteHandler $quoteHandler): JsonResponse
     {
         try {
-            // Fetch quotes from both APIs with individual try/catch blocks
-            try {
-                $dummyJsonQuote = $this->dummyJsonService->getRandomQuote();
-            } catch (\Exception $e) {
-                Log::warning('Error fetching DummyJSON quote: ' . $e->getMessage());
-                $dummyJsonQuote = [
-                    'quote' => 'Unable to fetch quote from DummyJSON: ' . $e->getMessage(),
-                    'author' => 'Error',
-                    'timeTaken' => 0,
-                    'error' => true,
-                    'errorMessage' => $e->getMessage()
-                ];
-            }
             
-            // ZenQuotes now handles its own errors and returns an error object
-            $zenQuotesQuote = $this->zenQuotesService->getRandomQuote();
-            
-            // Determine which API was faster (only if both were successful)
-            $dummyJsonTime = $dummyJsonQuote['timeTaken'] ?? 0;
-            $zenQuotesTime = $zenQuotesQuote['timeTaken'] ?? 0;
-            
-            // Only mark as fastest if there was no error
-            $dummyJsonQuote['isFastest'] = !isset($dummyJsonQuote['error']) && 
-                ($dummyJsonTime <= $zenQuotesTime || isset($zenQuotesQuote['error']));
-                
-            $zenQuotesQuote['isFastest'] = !isset($zenQuotesQuote['error']) && 
-                ($zenQuotesTime < $dummyJsonTime || isset($dummyJsonQuote['error']));
-            
-            //dispatch the quoteRetrieved event so listeners can act on it
-            QuoteRetrieved::dispatch(new QuotesDto($dummyJsonQuote,$zenQuotesQuote));
-
+            if ($request->path() == 'api/quotes/random'){
+                $allQuotesDto = $quoteHandler->getRandomQuote();
                 // Return both quotes
-            return response()->json(
-                new QuotesDto($dummyJsonQuote, $zenQuotesQuote)
-            );
+                return response()->json(
+                    $allQuotesDto
+                );
+            }elseif($request->path() == 'api/quotes/fastest'){
+                $fastestQuotesDto = $quoteHandler->getFastestQuote();
+                // Return both quotes
+                return response()->json(
+                    $fastestQuotesDto
+                );
+            }else{
+                return response()->json([
+                    'error' => 'Unknown endpoint: ' . $request->path()
+                ], 500);
+            }
 
 
         } catch (\Exception $e) {

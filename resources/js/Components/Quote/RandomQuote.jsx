@@ -16,10 +16,9 @@ export default function RandomQuote() {
             setLoading(true);
             setError(null);
             const response = await axios.get('/api/quotes/random');
-            
+            console.log('random quotes response:', response.data.quotes);
             // Set the quotes data
-            setQuotes(response.data);
-            
+            setQuotes(response.data.quotes);
             // Increment the key to force remounting of the speedometer
             setSpeedometerKey(prev => prev + 1);
         } catch (err) {
@@ -34,17 +33,10 @@ export default function RandomQuote() {
         fetchRandomQuotes();
     }, []);
 
-    // Ensure the value passed to the speedometer is always a valid number
-    const safeDummyJsonTime = quotes.dummyJson && typeof quotes.dummyJson.timeTaken === 'number' && isFinite(quotes.dummyJson.timeTaken) 
-        ? quotes.dummyJson.timeTaken 
-        : 0;
-    
-    const safeZenQuotesTime = quotes.zenQuotes && typeof quotes.zenQuotes.timeTaken === 'number' && isFinite(quotes.zenQuotes.timeTaken) 
-        ? quotes.zenQuotes.timeTaken 
-        : 0;
 
     // Function to render a quote card
     const renderQuoteCard = (quote, source, requestTime, isFastest) => {
+
         if (!quote) return null;
         
         return (
@@ -65,9 +57,7 @@ export default function RandomQuote() {
                             <div className="grid grid-cols-1 gap-4">
                                 {source === 'DummyJSON' && quote.user && (
                                     <div>
-                                        <p><span className="font-semibold">Username:</span> {quote.user.username}</p>
-                                        <p><span className="font-semibold">Name:</span> {quote.user.firstName} {quote.user.lastName}</p>
-                                        <p><span className="font-semibold">Email:</span> {quote.user.email}</p>
+                                        <p><span className="font-semibold">Username:</span> {quote.user}</p>
                                     </div>
                                 )}
                                 {source === 'ZenQuotes' && (
@@ -129,8 +119,8 @@ export default function RandomQuote() {
             {!loading && !error && quotes.dummyJson && quotes.zenQuotes && (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {renderQuoteCard(quotes.dummyJson, 'DummyJSON', safeDummyJsonTime, quotes.dummyJson.isFastest)}
-                        {renderQuoteCard(quotes.zenQuotes, 'ZenQuotes', safeZenQuotesTime, quotes.zenQuotes.isFastest)}
+                        {renderQuoteCard(quotes.dummyJson.quote, 'DummyJSON', quotes.dummyJson.quote.timeTaken, quotes.dummyJson.quote.isFastest)}
+                        {renderQuoteCard(quotes.zenQuotes.quote, 'ZenQuotes', quotes.zenQuotes.quote.timeTaken, quotes.zenQuotes.quote.isFastest)}
                     </div>
                     
                     <div className="flex justify-center mt-6">

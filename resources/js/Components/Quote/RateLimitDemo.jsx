@@ -60,7 +60,7 @@ export default function RateLimitDemo() {
                 // Get headers
                 const rateLimitLimit = response.headers.get('X-RateLimit-Limit');
                 const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
-                
+                console.log(data);
                 // Handle rate limit error
                 if (response.status === 429) {
                     const data = await response.json();

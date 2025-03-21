@@ -18,7 +18,8 @@ RUN curl -sL https://deb.nodesource.com/setup_20.x | bash - \
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql gd zip
+    && docker-php-ext-install pdo pdo_mysql gd zip pcntl
+RUN docker-php-ext-configure pcntl --enable-pcntl
 
 # Install and configure Xdebug
 RUN pecl install xdebug && docker-php-ext-enable xdebug \
@@ -90,8 +91,8 @@ RUN mkdir -p /var/www/docker-entrypoint.d/nginx-conf
 COPY nginx/default.conf /var/www/docker-entrypoint.d/nginx-conf/default.conf
 
 # Set proper permissions for storage and cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/vendor
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache /var/www/vendor
+# RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/vendor
+# RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache /var/www/vendor
 
 # Expose port 9000
 EXPOSE 9000

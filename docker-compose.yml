@@ -6,6 +6,7 @@ services:
     image: laravel-app
     container_name: laravel-app
     ports:
+      - "8080:8080" # Expose Reverb port
       - "5173:5173" # Expose Vite port
     volumes:
       - .:/var/www

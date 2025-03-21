@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Dto\QuotesDto;
+use App\Domain\Events\QuoteRetrieved;
 use App\Http\Controllers\Controller;
 use App\Services\DummyJsonService;
 use App\Services\ZenQuotesService;
@@ -67,11 +69,15 @@ class QuoteController extends Controller
             $zenQuotesQuote['isFastest'] = !isset($zenQuotesQuote['error']) && 
                 ($zenQuotesTime < $dummyJsonTime || isset($dummyJsonQuote['error']));
             
-            // Return both quotes
-            return response()->json([
-                'dummyJson' => $dummyJsonQuote,
-                'zenQuotes' => $zenQuotesQuote
-            ]);
+            //dispatch the quoteRetrieved event so listeners can act on it
+            QuoteRetrieved::dispatch(new QuotesDto($dummyJsonQuote,$zenQuotesQuote));
+
+                // Return both quotes
+            return response()->json(
+                new QuotesDto($dummyJsonQuote, $zenQuotesQuote)
+            );
+
+
         } catch (\Exception $e) {
             // Log the error with stack trace
             Log::error('Error fetching quotes: ' . $e->getMessage(), [

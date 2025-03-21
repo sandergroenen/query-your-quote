@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/react';
 import RandomQuote from '@/Components/Quote/RandomQuote';
 import RateLimitDemo from '@/Components/Quote/RateLimitDemo';
 import FastestQuote from '@/Components/Quote/FastestQuote';
+import QuoteStreamer from '@/Components/Quote/QuoteStreamer';
 
 export default function Quotes({ auth }) {
     return (
@@ -81,6 +82,9 @@ export default function Quotes({ auth }) {
 
                         <div className="mt-6">
                             <RandomQuote />
+                        </div>
+                        <div className="mt-6">
+                            <QuoteStreamer />
                         </div>
                         <div className="mt-6">
                             <FastestQuote />

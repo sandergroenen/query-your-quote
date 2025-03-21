@@ -39,4 +39,24 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/test-broadcast', function () {
+    $dummyJsonQuote = [
+        'quote' => 'Test quote from DummyJSON',
+        'author' => 'Test Author',
+        'timeTaken' => 0,
+        'isFastest' => true
+    ];
+    
+    $zenQuotesQuote = [
+        'quote' => 'Test quote from ZenQuotes',
+        'author' => 'Test Author',
+        'timeTaken' => 0,
+        'isFastest' => false
+    ];
+    
+    event(new \App\Domain\Events\QuoteRetrieved(new \App\Domain\Dto\QuotesDto($dummyJsonQuote, $zenQuotesQuote)));
+    
+    return 'Event dispatched!';
+});
+
 require __DIR__.'/auth.php';

@@ -68,12 +68,24 @@ docker compose exec -T app php artisan optimize:clear
 echo "Running database migrations..."
 docker compose exec -T app php artisan migrate --force
 
-# echo "Seeding the database..."
+echo "Seeding the database..."
 docker compose exec -T app php artisan db:seed --force
 
 # Install npm dependencies
 echo "Installing npm dependencies..."
 docker compose exec -T app npm install
+
+# Install npm dependencies
+# echo "Starting reverb server in the background..."
+# docker compose exec -T app bash -c "cd /var/www && php artisan reverb:start --debug &"
+
+# Start queue worker in the background
+echo "Starting queue worker in the background..."
+docker compose exec -T app bash -c "cd /var/www && php artisan queue:work --tries=3 --timeout=90 &"
+
+#Start reverb
+echo "Starting reverb server in the background..."
+docker compose exec -T app bash -c "cd /var/www && php artisan reverb:start --debug &"
 
 # Start Vite development server in the background within the app container
 echo "Starting Vite development server in the background..."

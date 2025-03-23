@@ -15,10 +15,10 @@ class FastestQuotesDto extends QuoteDto
 
 
     //setup fastest quote accessor
-    public function __get($name)
+    public function __get(String $name): mixed
     {
         if ($name == 'fastestQuote') {
-            return $this->quote;
+            return $this->jsonResponseQuote;
         }
 
         // Delegate to parent for other properties
@@ -38,6 +38,7 @@ class FastestQuotesDto extends QuoteDto
     }
 
     // Custom deserialization method for PHP 8+
+    /** @phpstan-ignore-next-line */
     public function __unserialize(array $data): void
     {
         // Call parent unserialize first

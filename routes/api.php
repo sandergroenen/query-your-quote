@@ -31,7 +31,7 @@ Route::get('/quotes/random', function (Request $request) {
     
     // Call the handle method directly with the parameters
     return $rateLimiter->handle($request, function ($request) {
-        return app()->make(QuoteController::class)->handle($request, app('App\Domain\Quotes\QuoteHandler'));
+        return app()->make(QuoteController::class)->handle(app('App\Domain\Quotes\QuoteHandler'),$request);
     }, $rateLimit, $decaySeconds);
 });
 

@@ -30,7 +30,7 @@ class QuoteController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
 
-    public function handle(?Request $request = null, QuoteHandler $quoteHandler): JsonResponse
+    public function handle(QuoteHandler $quoteHandler,?Request $request = null): JsonResponse
     {
         try {
             
@@ -61,10 +61,15 @@ class QuoteController extends Controller
                 'exception' => $e,
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'error' => 'Failed to fetch quotes: ' . $e->getMessage()
             ], 500);
         }
+
+        return response()->json([
+            'error' => 'Unexpected return path'
+        ], 500);
+
     }
 }

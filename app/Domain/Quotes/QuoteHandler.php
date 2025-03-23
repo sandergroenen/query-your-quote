@@ -55,7 +55,7 @@ class QuoteHandler
     }
 
 
-    function getFastestQuote()
+    function getFastestQuote(): FastestQuotesDto
     {
         $randomQuotes = $this->getRandomQuote();
         $whoIsFastest = $randomQuotes->dummyJson->isFastest ? 'dummyJson' : ($randomQuotes->zenQuotes->isFastest ? 'zenQuotes' : 'dummyJson');

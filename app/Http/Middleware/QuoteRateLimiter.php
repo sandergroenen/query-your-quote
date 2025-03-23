@@ -137,13 +137,13 @@ class QuoteRateLimiter
         return $response;
     }
 
-    public function resetAttempts($ip)
+    public function resetAttempts(String $ip): void
     {
         $key = 'quotes:' . $ip;
         $this->limiter->clear($key);
     }
 
-    public function getRemainingAttempts($ip, $maxAttempts)
+    public function getRemainingAttempts(String $ip, int $maxAttempts): int
     {
         $key = 'quotes:' . $ip;
         return $this->limiter->remaining($key, $maxAttempts);

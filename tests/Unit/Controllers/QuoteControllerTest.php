@@ -66,16 +66,16 @@ class QuoteControllerTest extends TestCase
         $this->assertTrue(get_class($response->zenQuotes) === QuoteDto::class,var_export($response,true));
         
         // Assert DummyJSON quote data
-        $this->assertEquals('DummyJSON quote', $response->dummyJson->quote->quote);
-        $this->assertEquals('DummyJSON Author', $response->dummyJson->quote->author);
-        $this->assertEquals(100,$response->dummyJson->quote->timeTaken);
-        $this->assertTrue($response->dummyJson->quote->isFastest);
+        $this->assertEquals('DummyJSON quote', $response->dummyJson->jsonResponseQuote->quote);
+        $this->assertEquals('DummyJSON Author', $response->dummyJson->jsonResponseQuote->author);
+        $this->assertEquals(100,$response->dummyJson->jsonResponseQuote->timeTaken);
+        $this->assertTrue($response->dummyJson->jsonResponseQuote->isFastest);
         
         // Assert Zenquotes quote data
-        $this->assertEquals('ZenQuotes quote', $response->zenQuotes->quote->quote);
-        $this->assertEquals('ZenQuotes Author', $response->zenQuotes->quote->author);
-        $this->assertEquals(150,$response->zenQuotes->quote->timeTaken);
-        $this->assertFalse($response->zenQuotes->quote->isFastest);
+        $this->assertEquals('ZenQuotes quote', $response->zenQuotes->jsonResponseQuote->quote);
+        $this->assertEquals('ZenQuotes Author', $response->zenQuotes->jsonResponseQuote->author);
+        $this->assertEquals(150,$response->zenQuotes->jsonResponseQuote->timeTaken);
+        $this->assertFalse($response->zenQuotes->jsonResponseQuote->isFastest);
     }
 
     #[Test]

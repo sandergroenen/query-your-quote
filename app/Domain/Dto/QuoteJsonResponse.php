@@ -2,6 +2,8 @@
 
 namespace App\Domain\Dto;
 
+use Dotenv\Util\Str;
+
 class QuoteJsonResponse
 {
     public function __construct(
@@ -17,19 +19,19 @@ class QuoteJsonResponse
     }
 
     //magic getters so the dto properties can be accessed directly like an array
-    public function __get($name)
+    public function __get(String $name): mixed
     {
         return $this->{$name};
     }
 
 
-    public function __set($name, $value)
+    public function __set(String $name, mixed $value)
     {
         $this->{$name} = $value;
     }
 
 
-    public function __isset($name)
+    public function __isset(String $name): bool
     {
         return isset($this->{$name});
     }

@@ -58,7 +58,7 @@ class QuoteApiTest extends TestCase
                  ->assertJsonStructure([
                      'quotes' => [
                          'dummyJson' => [
-                             'quote' => [
+                             'jsonResponseQuote' => [
                                  'quote',
                                  'author',
                                  'timeTaken',
@@ -67,7 +67,7 @@ class QuoteApiTest extends TestCase
                              ]
                          ],
                          'zenQuotes' => [
-                             'quote' => [
+                             'jsonResponseQuote' => [
                                  'quote',
                                  'author',
                                  'timeTaken',
@@ -81,7 +81,7 @@ class QuoteApiTest extends TestCase
         $response->assertJson([
             'quotes' => [
                 'dummyJson' => [
-                    'quote' => [
+                    'jsonResponseQuote' => [
                         'quote' => 'DummyJSON quote',
                         'author' => 'DummyJSON Author',
                         'timeTaken' => 100,
@@ -90,7 +90,7 @@ class QuoteApiTest extends TestCase
                     ]
                 ],
                 'zenQuotes' => [
-                    'quote' => [
+                    'jsonResponseQuote' => [
                         'quote' => 'ZenQuotes quote',
                         'author' => 'ZenQuotes Author',
                         'timeTaken' => 150,
@@ -141,7 +141,7 @@ class QuoteApiTest extends TestCase
                  ->assertJsonStructure([
                      'quotes' => [
                          'dummyJson' => [
-                             'quote' => [
+                             'jsonResponseQuote' => [
                                  'quote',
                                  'author',
                                  'timeTaken',
@@ -150,7 +150,7 @@ class QuoteApiTest extends TestCase
                              ]
                          ],
                          'zenQuotes' => [
-                             'quote' => [
+                             'jsonResponseQuote' => [
                                  'quote',
                                  'author',
                                  'timeTaken',
@@ -164,7 +164,7 @@ class QuoteApiTest extends TestCase
         $response->assertJson([
             'quotes' => [
                 'dummyJson' => [
-                    'quote' => [
+                    'jsonResponseQuote' => [
                         'quote' => 'Unable to fetch quote from DummyJSON: API error',
                         'author' => 'Error',
                         'timeTaken' => 0,
@@ -173,7 +173,7 @@ class QuoteApiTest extends TestCase
                     ]
                 ],
                 'zenQuotes' => [
-                    'quote' => [
+                    'jsonResponseQuote' => [
                         'quote' => 'Unable to fetch quote from ZenQuotes: API error',
                         'author' => 'Error',
                         'timeTaken' => 0,
@@ -226,7 +226,7 @@ class QuoteApiTest extends TestCase
         $response->assertJson([
             'quotes' => [
                 'dummyJson' => [
-                    'quote' => [
+                    'jsonResponseQuote' => [
                         'quote' => 'DummyJSON quote',
                         'author' => 'DummyJSON Author',
                         'isFastest' => true // Fastest because ZenQuotes failed
@@ -239,7 +239,7 @@ class QuoteApiTest extends TestCase
         $response->assertJson([
             'quotes' => [
                 'zenQuotes' => [
-                    'quote' => [
+                    'jsonResponseQuote' => [
                         'error' => true,
                         'errorMessage' => 'API error'
                     ]

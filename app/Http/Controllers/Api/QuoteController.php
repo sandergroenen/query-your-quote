@@ -46,8 +46,6 @@ class QuoteController extends Controller
                 return response()->json(
                     $fastestQuotesDto
                 );
-            }elseif($request->path() == 'api/quotes/streaming'){
-               //
             }else{
                 return response()->json([
                     'error' => 'Unknown endpoint: ' . $request->path()

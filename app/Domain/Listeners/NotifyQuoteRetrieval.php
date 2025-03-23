@@ -6,8 +6,6 @@ use App\Domain\Dto\QuoteDto;
 use App\Domain\Events\FilteredQuoteRetrievedEvent;
 use App\Domain\Events\QuoteRetrievedEvent;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Event;
-use Inertia\Inertia;
 
 class NotifyQuoteRetrieval
 {

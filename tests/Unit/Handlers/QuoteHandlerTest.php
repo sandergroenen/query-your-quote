@@ -8,13 +8,11 @@ use App\Domain\Dto\QuoteJsonResponse;
 use App\Domain\Quotes\DummyJsonService;
 use App\Domain\Quotes\QuoteHandler;
 use App\Domain\Quotes\ZenQuotesService;
-use Exception;
-use Illuminate\Http\Request;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class QuoteControllerTest extends TestCase
+class QuoteHandlerTest extends TestCase
 {
     /**
      * @var Mockery\MockInterface&DummyJsonService

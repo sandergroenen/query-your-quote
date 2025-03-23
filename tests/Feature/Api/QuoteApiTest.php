@@ -301,18 +301,18 @@ class QuoteApiTest extends TestCase
         $rateLimiter->resetAttempts($ipAddress);
         $simultaneousRequests = 5;
 
-        for ($ratelimit = 1; $ratelimit <= 5; $ratelimit++) {
+        for ($rateLimit = 1; $rateLimit <= 5; $rateLimit++) {
             $rateLimithit = 0;
 
             // Log initial state
-            $initialRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $ratelimit);
+            $initialRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $rateLimit);
             echo "Initial remaining attempts: $initialRemaining\n";
 
-            $this->assertEquals($ratelimit, $initialRemaining);
+            $this->assertEquals($rateLimit, $initialRemaining);
 
             // Send requests sequentially
             for ($i = 0; $i < $simultaneousRequests; $i++) {
-                $response = Http::get("http://host.docker.internal/api/quotes/random?rateLimit=$ratelimit");
+                $response = Http::get("http://host.docker.internal/api/quotes/random?rateLimit=$rateLimit");
 
                 if ($response->status() !== 200) {
                     $rateLimithit++;
@@ -323,20 +323,20 @@ class QuoteApiTest extends TestCase
             }
 
             // Log after requests
-            $afterRequestsRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $ratelimit);
+            $afterRequestsRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $rateLimit);
             echo "Remaining attempts after requests: $afterRequestsRemaining\n";
 
-            $this->assertEquals($simultaneousRequests - $ratelimit, $rateLimithit,"Current rate limit: $ratelimit, current remaining attempts: $afterRequestsRemaining");
+            $this->assertEquals($simultaneousRequests - $rateLimit, $rateLimithit,"Current rate limit: $rateLimit, current remaining attempts: $afterRequestsRemaining");
 
             // Reset rate limit cache
             $rateLimiter->resetAttempts($ipAddress);
             
             // Log after reset
-            $afterResetRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $ratelimit);
+            $afterResetRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $rateLimit);
             echo "Remaining attempts after reset: $afterResetRemaining\n";
             
             // Verify remaining attempts
-            $this->assertEquals($ratelimit, $afterResetRemaining);
+            $this->assertEquals($rateLimit, $afterResetRemaining);
         }
     }
 

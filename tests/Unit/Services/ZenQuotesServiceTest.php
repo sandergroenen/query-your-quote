@@ -3,7 +3,6 @@
 namespace Tests\Unit\Services;
 
 use App\Domain\Quotes\ZenQuotesService;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;

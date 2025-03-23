@@ -3,7 +3,6 @@
 namespace Tests\Unit\Services;
 
 use App\Domain\Quotes\DummyJsonService;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;

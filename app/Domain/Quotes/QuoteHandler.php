@@ -5,7 +5,6 @@ namespace App\Domain\Quotes;
 use App\Domain\Dto\AllQuotesDto;
 use App\Domain\Dto\FastestQuotesDto;
 use App\Domain\Dto\QuoteDto;
-use App\Domain\Dto\QuoteJsonResponse;
 use App\Domain\Quotes\DummyJsonService;
 use App\Domain\Quotes\ZenQuotesService;
 

@@ -5,10 +5,10 @@ namespace Tests\Feature\Api;
 use App\Domain\Quotes\DummyJsonService;
 use App\Domain\Quotes\ZenQuotesService;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Request;
 
 class QuoteApiTest extends TestCase
 {
@@ -290,36 +290,54 @@ class QuoteApiTest extends TestCase
     #[Test]
     public function it_will_hit_ratelimit_according_to_parameters(){
  
-        //allow stray requests otherwise the pool method will throw an exception
         Http::allowStrayRequests();
 
+        $rateLimiter = new \App\Http\Middleware\QuoteRateLimiter(app('Illuminate\Cache\RateLimiter'));
+
+        // Create a mock request to get the IP
+        $mockRequest = Request::create('/', 'GET', [], [], [], ['REMOTE_ADDR' => '172.20.0.1']);
+        $ipAddress = $mockRequest->getClientIp();
+        // Reset rate limit cache
+        $rateLimiter->resetAttempts($ipAddress);
         $simultaneousRequests = 5;
-        $ratelimit = 3;
-        $rateLimithit = 0;
 
-        // Log initial cache state
-        Log::info('Initial rate limit cache state: ', Cache::get('rate_limit_key'));
+        for ($ratelimit = 1; $ratelimit <= 5; $ratelimit++) {
+            $rateLimithit = 0;
 
-        // Simulate simultaneous requests
-        for ($i = 0; $i < $simultaneousRequests; $i++) {
-            $response = $this->getJson('/api/quotes/random?rateLimit=100');
+            // Log initial state
+            $initialRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $ratelimit);
+            echo "Initial remaining attempts: $initialRemaining\n";
 
-            if ($response->status() !== 200) {
-                $rateLimithit++;
-                // Log cache hit
-                Log::info('Rate limit hit for request ' . $i);
-            } else {
-                // Log cache miss
-                Log::info('Rate limit not hit for request ' . $i);
+            $this->assertEquals($ratelimit, $initialRemaining);
+
+            // Send requests sequentially
+            for ($i = 0; $i < $simultaneousRequests; $i++) {
+                $response = Http::get("http://host.docker.internal/api/quotes/random?rateLimit=$ratelimit");
+
+                if ($response->status() !== 200) {
+                    $rateLimithit++;
+                    $this->assertEquals(429, $response->status());
+                } else {
+                    $this->assertEquals(200, $response->status());
+                }
             }
 
-            $this->assertEquals(200, $response->status());
+            // Log after requests
+            $afterRequestsRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $ratelimit);
+            echo "Remaining attempts after requests: $afterRequestsRemaining\n";
+
+            $this->assertEquals($simultaneousRequests - $ratelimit, $rateLimithit,"Current rate limit: $ratelimit, current remaining attempts: $afterRequestsRemaining");
+
+            // Reset rate limit cache
+            $rateLimiter->resetAttempts($ipAddress);
+            
+            // Log after reset
+            $afterResetRemaining = $rateLimiter->getRemainingAttempts($ipAddress, $ratelimit);
+            echo "Remaining attempts after reset: $afterResetRemaining\n";
+            
+            // Verify remaining attempts
+            $this->assertEquals($ratelimit, $afterResetRemaining);
         }
-
-        // Log final cache state
-        Log::info('Final rate limit cache state: ', Cache::get('rate_limit_key'));
-
-        $this->assertEquals($simultaneousRequests - $ratelimit, $rateLimithit);
     }
 
 }

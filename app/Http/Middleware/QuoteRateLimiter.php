@@ -137,8 +137,15 @@ class QuoteRateLimiter
         return $response;
     }
 
-    public function resetAttempts(){
-        // Clear all cache
-        Cache::flush();
+    public function resetAttempts($ip)
+    {
+        $key = 'quotes:' . $ip;
+        $this->limiter->clear($key);
+    }
+
+    public function getRemainingAttempts($ip, $maxAttempts)
+    {
+        $key = 'quotes:' . $ip;
+        return $this->limiter->remaining($key, $maxAttempts);
     }
 }

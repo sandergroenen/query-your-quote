@@ -2,7 +2,11 @@
 
 namespace App\Domain\Listeners;
 
+use App\Domain\Dto\QuoteDto;
+use App\Domain\Events\FilteredQuoteRetrievedEvent;
 use App\Domain\Events\QuoteRetrievedEvent;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Inertia\Inertia;
 
 class NotifyQuoteRetrieval
@@ -20,7 +24,10 @@ class NotifyQuoteRetrieval
      */
     public function handle(QuoteRetrievedEvent $event): void
     {
-        // For now do nothing since frontend is also listening to same event
+        //filter the even on the global filter
+        if (stripos($event->quote->jsonResponseQuote->quote, Cache::get('quote_filter')) !== false) {
+            FilteredQuoteRetrievedEvent::dispatch(new QuoteDto($event->quote->jsonResponseQuote));
+        }
        
     }
 }

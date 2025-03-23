@@ -1,10 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { Link } from '@inertiajs/react';
-import RandomQuote from '@/Components/Quote/RandomQuote';
-import RateLimitDemo from '@/Components/Quote/RateLimitDemo';
-import FastestQuote from '@/Components/Quote/FastestQuote';
-import QuoteStreamer from '@/Components/Quote/QuoteStreamer';
 import QuoteSimpleChannel from '@/Components/Quote/QuoteSimpleChannel';
+import FilteredQuoteSimpleChannel from '@/Components/Quote/FilteredQuoteSimpleChannel';
 
 export default function Quotes({ auth }) {
     return (
@@ -18,6 +14,10 @@ export default function Quotes({ auth }) {
 
                         <div className="mt-6">
                             <QuoteSimpleChannel />
+                        </div>  
+                        
+                        <div className="mt-6">
+                            <FilteredQuoteSimpleChannel />
                         </div>        
                     </div>
                 </div>

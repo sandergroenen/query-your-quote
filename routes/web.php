@@ -62,5 +62,19 @@ Route::get('/test-broadcast', function () {
     
     return 'Event dispatched!';
 });
+
+Route::get('/test-broadcast2', function () {
+    $testquote = new QuoteJsonResponse(
+        'x',
+        'xx',
+        'xx',
+        0,
+        'xxx'
+    );
+    
+    event(new QuoteRetrievedEvent(new QuoteDto($testquote)));
+    
+    return 'Event dispatched!';
+});
     
 require __DIR__.'/auth.php';

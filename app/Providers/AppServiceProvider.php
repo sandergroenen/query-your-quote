@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domain\Events\FilteredQuoteRetrievedEvent;
 use App\Domain\Events\QuoteRetrievedEvent;
 use App\Domain\Listeners\NotifyQuoteRetrieval;
+use DeepCopy\Filter\Filter;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Vite;

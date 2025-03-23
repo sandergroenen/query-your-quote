@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\QuoteController;
 use App\Http\Middleware\QuoteRateLimiter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,3 +39,14 @@ Route::get('/quotes/random', function (Request $request) {
 Route::get('/quotes/fastest', function(Request $request){
     return app()->make(QuoteController::class)->handle(app('App\Domain\Quotes\QuoteHandler'),$request);
 }); 
+
+Route::post('/set-quote-filter', function (Request $request) {
+    $request->validate([
+        'filter' => 'required|string',
+    ]);
+
+    // Set the cache value
+    Cache::put('quote_filter', $request->input('filter'));
+
+    return response()->json(['message' => 'Quote filter set successfully']);
+});

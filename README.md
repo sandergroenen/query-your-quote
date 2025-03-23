@@ -82,7 +82,7 @@ Once the setup is complete, you can access the frontend application at:
   - Password: password
 - **Dispatch test quote event**: http://localhost/test-broadcast  
 - **Dispatch test quote event**: http://localhost/test-broadcast2  
-- **Display latest quote and filtered quote retrieven in real time**: http://localhost/simplestreamer (no login required)  
+- **Display latest quote and filtered quote retrieval in real time**: http://localhost/simplestreamer (no login required)  
 
 the application features an api endpoint that can be called to get a random quote but provides theb above mentioned front-end for easy demonstration. If you want to access the api endpoint using curl or another tool directly please make a call to any of the below endpoints: http://localhost/quotes/random which will return the quotes from the api directly
 

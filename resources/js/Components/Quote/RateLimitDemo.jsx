@@ -103,26 +103,26 @@ export default function RateLimitDemo() {
                 if (dummyJsonError && zenQuotesError) {
                     // Both APIs had errors
                     content += `Both APIs returned errors: \n`;
-                    content += `DummyJSON: ${data.dummyJson.quote}\n`;
-                    content += `ZenQuotes: ${data.zenQuotes.quote}`;
+                    content += `DummyJSON: ${data.dummyJson.jsonResponseQuote}\n`;
+                    content += `ZenQuotes: ${data.zenQuotes.jsonResponseQuote}`;
                 } else if (dummyJsonError) {
                     // Only DummyJSON had an error
-                    content += `DummyJSON Error: ${data.dummyJson.quote}\n`;
-                    content += `ZenQuotes: "${data.zenQuotes.quote}" - ${data.zenQuotes.author}`;
+                    content += `DummyJSON Error: ${data.dummyJson.jsonResponseQuote}\n`;
+                    content += `ZenQuotes: "${data.zenQuotes.jsonResponseQuote}" - ${data.zenQuotes.author}`;
                 } else if (zenQuotesError) {
                     // Only ZenQuotes had an error
-                    content += `DummyJSON: "${data.dummyJson.quote}" - ${data.dummyJson.author}\n`;
+                    content += `DummyJSON: "${data.dummyJson.jsonResponseQuote}" - ${data.dummyJson.author}\n`;
                     content += `ZenQuotes Error: ${data.zenQuotes.quote}`;
                 } else {
                     // No errors
-                    content += `DummyJSON: "${data.dummyJson.quote}" - ${data.dummyJson.author}\n`;
-                    content += `ZenQuotes: "${data.zenQuotes.quote}" - ${data.zenQuotes.author}`;
+                    content += `DummyJSON: "${data.dummyJson.jsonResponseQuote}" - ${data.dummyJson.author}\n`;
+                    content += `ZenQuotes: "${data.zenQuotes.jsonResponseQuote}" - ${data.zenQuotes.author}`;
                 }
                 
                 // Add user info if available
                 if (data.dummyJson.user && !dummyJsonError) {
                     const user = data.dummyJson.user;
-                    content += `\n\nDummyJSON Quote fetched as: ${user.firstName || ''} ${user.lastName || ''} (${user.username || 'unknown'})`;
+                    content += data.dummyJson.user;
                 }
                 
                 // Add to results array

@@ -12,7 +12,7 @@ function QuoteSimpleChannel() {
         // Listen for the QuoteRetrieved event
         channel.listen('.QuoteRetrieved', (event) => {
             console.log('Received quote event in simple channel ', event);
-            setReceivedQuote( event.quote.quote );  
+            setReceivedQuote( event.quote.jsonResponseQuote );  
             console.log(receivedQuote);
           
         });

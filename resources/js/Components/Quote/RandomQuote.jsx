@@ -119,8 +119,8 @@ export default function RandomQuote() {
             {!loading && !error && quotes.dummyJson && quotes.zenQuotes && (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {renderQuoteCard(quotes.dummyJson.quote, 'DummyJSON', quotes.dummyJson.quote.timeTaken, quotes.dummyJson.quote.isFastest)}
-                        {renderQuoteCard(quotes.zenQuotes.quote, 'ZenQuotes', quotes.zenQuotes.quote.timeTaken, quotes.zenQuotes.quote.isFastest)}
+                        {renderQuoteCard(quotes.dummyJson.jsonResponseQuote, 'DummyJSON', quotes.dummyJson.jsonResponseQuote.timeTaken, quotes.dummyJson.jsonResponseQuote.isFastest)}
+                        {renderQuoteCard(quotes.zenQuotes.jsonResponseQuote, 'ZenQuotes', quotes.zenQuotes.jsonResponseQuote.timeTaken, quotes.zenQuotes.jsonResponseQuote.isFastest)}
                     </div>
                     
                     <div className="flex justify-center mt-6">

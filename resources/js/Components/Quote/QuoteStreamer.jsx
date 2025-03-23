@@ -19,13 +19,13 @@ function QuoteStreamer() {
 
         // Listen for the QuoteRetrieved event
         channel.listen('.QuoteRetrieved', (event) => {
-            console.log('Received quote event ', event);
+            console.log('Received quote event in streamer', event);
             
             // Add new quote to history with timestamp
             setQuoteHistory(prevHistory => [
                 ...prevHistory,
                 {
-                    ...event.quote.quote,
+                    ...event.quote.jsonResponseQuote,
                     timestamp: new Date()
                 }
             ]);

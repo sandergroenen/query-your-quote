@@ -5,6 +5,7 @@ namespace App\Domain\Quotes;
 use App\Domain\Dto\AllQuotesDto;
 use App\Domain\Dto\FastestQuotesDto;
 use App\Domain\Dto\QuoteDto;
+use App\Domain\Dto\QuoteJsonResponse;
 use App\Domain\Quotes\DummyJsonService;
 use App\Domain\Quotes\ZenQuotesService;
 
@@ -59,6 +60,6 @@ class QuoteHandler
     {
         $randomQuotes = $this->getRandomQuote();
         $whoIsFastest = $randomQuotes->dummyJson->isFastest ? 'dummyJson' : ($randomQuotes->zenQuotes->isFastest ? 'zenQuotes' : 'dummyJson');
-        return new FastestQuotesDto($whoIsFastest, $randomQuotes->{$whoIsFastest}->quote);
+        return new FastestQuotesDto($whoIsFastest, $randomQuotes->{$whoIsFastest}->jsonResponseQuote);
     }
 }

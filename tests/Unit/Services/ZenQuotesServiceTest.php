@@ -39,9 +39,10 @@ class ZenQuotesServiceTest extends TestCase
         $quote = $this->service->getRandomQuote();
 
         // Assert the quote data is returned
-        $this->assertEquals('This is a test quote from ZenQuotes', $quote['quote']);
-        $this->assertEquals('ZenQuotes Author', $quote['author']);
-        $this->assertArrayHasKey('timeTaken', $quote);
+        $this->assertEquals('This is a test quote from ZenQuotes', $quote->quote);
+        $this->assertEquals('ZenQuotes Author', $quote->author);
+        $this->assertIsNumeric($quote->timeTaken);
+        $this->assertNull($quote->user);
 
         // Assert HTTP request was made
         Http::assertSent(function ($request) {
@@ -63,11 +64,15 @@ class ZenQuotesServiceTest extends TestCase
         $quote = $this->service->getRandomQuote();
 
         // Assert error data is returned
-        $this->assertStringContainsString('Unable to fetch quote from ZenQuotes', $quote['quote']);
-        $this->assertEquals('Error', $quote['author']);
-        $this->assertEquals(0, $quote['timeTaken']);
-        $this->assertTrue($quote['error']);
-        $this->assertArrayHasKey('errorMessage', $quote);
+        $this->assertTrue($quote->error);
+        $this->assertStringContainsString('API rate limit exceeded', $quote->errorMessage);
+        $this->assertIsNumeric($quote->timeTaken);
+        $this->assertNull($quote->user);
+
+        // Assert HTTP request was made
+        Http::assertSent(function ($request) {
+            return $request->url() == 'https://zenquotes.io/api/random';
+        });
     }
 
     #[Test]
@@ -84,11 +89,15 @@ class ZenQuotesServiceTest extends TestCase
         $quote = $this->service->getRandomQuote();
 
         // Assert error data is returned
-        $this->assertStringContainsString('Unable to fetch quote from ZenQuotes', $quote['quote']);
-        $this->assertEquals('Error', $quote['author']);
-        $this->assertEquals(0, $quote['timeTaken']);
-        $this->assertTrue($quote['error']);
-        $this->assertArrayHasKey('errorMessage', $quote);
+        $this->assertTrue($quote->error);
+        $this->assertStringContainsString('Invalid response', $quote->errorMessage);
+        $this->assertIsNumeric($quote->timeTaken);
+        $this->assertNull($quote->user);
+
+        // Assert HTTP request was made
+        Http::assertSent(function ($request) {
+            return $request->url() == 'https://zenquotes.io/api/random';
+        });
     }
 
     #[Test]
@@ -103,29 +112,37 @@ class ZenQuotesServiceTest extends TestCase
         $quote = $this->service->getRandomQuote();
 
         // Assert error data is returned
-        $this->assertStringContainsString('Unable to fetch quote from ZenQuotes', $quote['quote']);
-        $this->assertEquals('Error', $quote['author']);
-        $this->assertEquals(0, $quote['timeTaken']);
-        $this->assertTrue($quote['error']);
-        $this->assertArrayHasKey('errorMessage', $quote);
+        $this->assertTrue($quote->error);
+        $this->assertStringContainsString('Invalid response', $quote->errorMessage);
+        $this->assertIsNumeric($quote->timeTaken);
+        $this->assertNull($quote->user);
+
+        // Assert HTTP request was made
+        Http::assertSent(function ($request) {
+            return $request->url() == 'https://zenquotes.io/api/random';
+        });
     }
 
     #[Test]
     public function it_handles_timeout()
     {
         // Mock a timeout exception
-        Http::fake(function () {
-            throw new ConnectionException('Connection timed out');
-        });
+        Http::fake([
+            'https://zenquotes.io/api/random' => Http::response(null, 500, [], 0.001)
+        ]);
 
         // Call the getRandomQuote method
         $quote = $this->service->getRandomQuote();
 
         // Assert error data is returned
-        $this->assertStringContainsString('Unable to fetch quote from ZenQuotes', $quote['quote']);
-        $this->assertEquals('Error', $quote['author']);
-        $this->assertEquals(0, $quote['timeTaken']);
-        $this->assertTrue($quote['error']);
-        $this->assertArrayHasKey('errorMessage', $quote);
+        $this->assertTrue($quote->error);
+        $this->assertStringContainsString('HTTP 500', $quote->errorMessage);
+        $this->assertIsNumeric($quote->timeTaken);
+        $this->assertNull($quote->user);
+
+        // Assert HTTP request was made
+        Http::assertSent(function ($request) {
+            return $request->url() == 'https://zenquotes.io/api/random';
+        });
     }
 }

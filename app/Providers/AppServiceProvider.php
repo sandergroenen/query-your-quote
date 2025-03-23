@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Domain\Events\QuoteRetrieved;
+use App\Domain\Events\QuoteRetrievedEvent;
 use App\Domain\Listeners\NotifyQuoteRetrieval;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
         Vite::prefetch(concurrency: 3);
         //register event handler for all quote events
         Event::listen(
-            QuoteRetrieved::class,
+            QuoteRetrievedEvent::class,
             NotifyQuoteRetrieval::class
         );
     }

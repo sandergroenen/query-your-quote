@@ -29,6 +29,7 @@ class QuoteController extends Controller
      * @param \Illuminate\Http\Request|null $request
      * @return \Illuminate\Http\JsonResponse
      */
+
     public function handle(?Request $request = null, QuoteHandler $quoteHandler): JsonResponse
     {
         try {
@@ -45,6 +46,8 @@ class QuoteController extends Controller
                 return response()->json(
                     $fastestQuotesDto
                 );
+            }elseif($request->path() == 'api/quotes/streaming'){
+               //
             }else{
                 return response()->json([
                     'error' => 'Unknown endpoint: ' . $request->path()

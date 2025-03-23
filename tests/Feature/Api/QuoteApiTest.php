@@ -2,16 +2,11 @@
 
 namespace Tests\Feature\Api;
 
-use App\Http\Controllers\Api\QuoteController;
-use App\Http\Middleware\QuoteRateLimiter;
 use App\Domain\Quotes\DummyJsonService;
 use App\Domain\Quotes\ZenQuotesService;
-use GuzzleHttp\Promise\PromiseInterface;
-use Illuminate\Cache\RateLimiter;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Http;
-use Mockery;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -32,22 +27,27 @@ class QuoteApiTest extends TestCase
         $this->mock(DummyJsonService::class, function ($mock) {
             $mock->shouldReceive('getRandomQuote')
                  ->once()
-                 ->andReturn([
-                     'quote' => 'DummyJSON quote',
-                     'author' => 'DummyJSON Author',
-                     'timeTaken' => 100,
-                     'user' => ['id' => 1, 'username' => 'testuser']
-                 ]);
+                 ->andReturn(new \App\Domain\Dto\QuoteJsonResponse(
+                     'dummyJson',
+                     'DummyJSON quote',
+                     'DummyJSON Author',
+                     100,
+                     'testuser',
+                     false
+                 ));
         });
         
         $this->mock(ZenQuotesService::class, function ($mock) {
             $mock->shouldReceive('getRandomQuote')
                  ->once()
-                 ->andReturn([
-                     'quote' => 'ZenQuotes quote',
-                     'author' => 'ZenQuotes Author',
-                     'timeTaken' => 150
-                 ]);
+                 ->andReturn(new \App\Domain\Dto\QuoteJsonResponse(
+                     'zenQuotes',
+                     'ZenQuotes quote',
+                     'ZenQuotes Author',
+                     150,
+                     null,
+                     true
+                 ));
         });
 
         // Make request to the API endpoint
@@ -56,34 +56,47 @@ class QuoteApiTest extends TestCase
         // Assert response status and structure
         $response->assertStatus(200)
                  ->assertJsonStructure([
-                     'dummyJson' => [
-                         'quote',
-                         'author',
-                         'timeTaken',
-                         'user',
-                         'isFastest'
-                     ],
-                     'zenQuotes' => [
-                         'quote',
-                         'author',
-                         'timeTaken',
-                         'isFastest'
+                     'quotes' => [
+                         'dummyJson' => [
+                             'quote' => [
+                                 'quote',
+                                 'author',
+                                 'timeTaken',
+                                 'user',
+                                 'isFastest'
+                             ]
+                         ],
+                         'zenQuotes' => [
+                             'quote' => [
+                                 'quote',
+                                 'author',
+                                 'timeTaken',
+                                 'isFastest'
+                             ]
+                         ]
                      ]
                  ]);
 
         // Assert specific values
         $response->assertJson([
-            'dummyJson' => [
-                'quote' => 'DummyJSON quote',
-                'author' => 'DummyJSON Author',
-                'timeTaken' => 100,
-                'isFastest' => true
-            ],
-            'zenQuotes' => [
-                'quote' => 'ZenQuotes quote',
-                'author' => 'ZenQuotes Author',
-                'timeTaken' => 150,
-                'isFastest' => false
+            'quotes' => [
+                'dummyJson' => [
+                    'quote' => [
+                        'quote' => 'DummyJSON quote',
+                        'author' => 'DummyJSON Author',
+                        'timeTaken' => 100,
+                        'user' => 'testuser',
+                        'isFastest' => true
+                    ]
+                ],
+                'zenQuotes' => [
+                    'quote' => [
+                        'quote' => 'ZenQuotes quote',
+                        'author' => 'ZenQuotes Author',
+                        'timeTaken' => 150,
+                        'isFastest' => false
+                    ]
+                ]
             ]
         ]);
     }
@@ -95,25 +108,29 @@ class QuoteApiTest extends TestCase
         $this->mock(DummyJsonService::class, function ($mock) {
             $mock->shouldReceive('getRandomQuote')
                  ->once()
-                 ->andReturn([
-                     'quote' => 'Unable to fetch quote from DummyJSON: API error',
-                     'author' => 'Error',
-                     'timeTaken' => 0,
-                     'error' => true,
-                     'errorMessage' => 'API error'
-                 ]);
+                 ->andReturn(new \App\Domain\Dto\QuoteJsonResponse(
+                     'dummyJson',
+                     'Unable to fetch quote from DummyJSON: API error',
+                     'Error',
+                     0,
+                     'testuser',
+                     false,
+                     'API error'
+                 ));
         });
         
         $this->mock(ZenQuotesService::class, function ($mock) {
             $mock->shouldReceive('getRandomQuote')
                  ->once()
-                 ->andReturn([
-                     'quote' => 'Unable to fetch quote from ZenQuotes: API error',
-                     'author' => 'Error',
-                     'timeTaken' => 0,
-                     'error' => true,
-                     'errorMessage' => 'API error'
-                 ]);
+                 ->andReturn(new \App\Domain\Dto\QuoteJsonResponse(
+                     'zenQuotes',
+                     'Unable to fetch quote from ZenQuotes: API error',
+                     'Error',
+                     0,
+                     null,
+                     false,
+                     'API error'
+                 ));
         });
 
         // Make request to the API endpoint
@@ -122,66 +139,81 @@ class QuoteApiTest extends TestCase
         // Assert response status and structure
         $response->assertStatus(200)
                  ->assertJsonStructure([
-                     'dummyJson' => [
-                         'quote',
-                         'author',
-                         'timeTaken',
-                         'error',
-                         'errorMessage'
-                     ],
-                     'zenQuotes' => [
-                         'quote',
-                         'author',
-                         'timeTaken',
-                         'error',
-                         'errorMessage'
+                     'quotes' => [
+                         'dummyJson' => [
+                             'quote' => [
+                                 'quote',
+                                 'author',
+                                 'timeTaken',
+                                 'user',
+                                 'isFastest'
+                             ]
+                         ],
+                         'zenQuotes' => [
+                             'quote' => [
+                                 'quote',
+                                 'author',
+                                 'timeTaken',
+                                 'isFastest'
+                             ]
+                         ]
                      ]
                  ]);
 
-        // Assert error values
+        // Assert specific error values
         $response->assertJson([
-            'dummyJson' => [
-                'error' => true,
-                'errorMessage' => 'API error'
-            ],
-            'zenQuotes' => [
-                'error' => true,
-                'errorMessage' => 'API error'
+            'quotes' => [
+                'dummyJson' => [
+                    'quote' => [
+                        'quote' => 'Unable to fetch quote from DummyJSON: API error',
+                        'author' => 'Error',
+                        'timeTaken' => 0,
+                        'user' => 'testuser',
+                        'isFastest' => false // False because of both equal time 
+                    ]
+                ],
+                'zenQuotes' => [
+                    'quote' => [
+                        'quote' => 'Unable to fetch quote from ZenQuotes: API error',
+                        'author' => 'Error',
+                        'timeTaken' => 0,
+                        'isFastest' => false // False because of both equal time
+                    ]
+                ]
             ]
-        ]);
-        
-        // Assert neither service is marked as fastest
-        $response->assertJsonMissing([
-            'dummyJson' => ['isFastest' => true],
-            'zenQuotes' => ['isFastest' => true]
         ]);
     }
 
     #[Test]
     public function it_handles_one_service_failing()
     {
-        // Mock DummyJSON with success and ZenQuotes with error
+        // Mock DummyJsonService to succeed
         $this->mock(DummyJsonService::class, function ($mock) {
             $mock->shouldReceive('getRandomQuote')
                  ->once()
-                 ->andReturn([
-                     'quote' => 'DummyJSON quote',
-                     'author' => 'DummyJSON Author',
-                     'timeTaken' => 100,
-                     'user' => ['id' => 1, 'username' => 'testuser']
-                 ]);
+                 ->andReturn(new \App\Domain\Dto\QuoteJsonResponse(
+                     'dummyJson',
+                     'DummyJSON quote',
+                     'DummyJSON Author',
+                     100,
+                     'testuser',
+                     false
+                 ));
         });
         
+        // Mock ZenQuotesService to fail
         $this->mock(ZenQuotesService::class, function ($mock) {
             $mock->shouldReceive('getRandomQuote')
                  ->once()
-                 ->andReturn([
-                     'quote' => 'Unable to fetch quote from ZenQuotes: API error',
-                     'author' => 'Error',
-                     'timeTaken' => 0,
-                     'error' => true,
-                     'errorMessage' => 'API error'
-                 ]);
+                 ->andReturn(new \App\Domain\Dto\QuoteJsonResponse(
+                     'zenQuotes',
+                     'Unable to fetch quote from ZenQuotes: API error',
+                     'Error',
+                     0,
+                     null,
+                     true,
+                     'API error'
+                 ));
         });
 
         // Make request to the API endpoint
@@ -192,18 +224,26 @@ class QuoteApiTest extends TestCase
         
         // Assert DummyJSON is successful and marked as fastest
         $response->assertJson([
-            'dummyJson' => [
-                'quote' => 'DummyJSON quote',
-                'author' => 'DummyJSON Author',
-                'isFastest' => true
+            'quotes' => [
+                'dummyJson' => [
+                    'quote' => [
+                        'quote' => 'DummyJSON quote',
+                        'author' => 'DummyJSON Author',
+                        'isFastest' => true // Fastest because ZenQuotes failed
+                    ]
+                ]
             ]
         ]);
         
         // Assert ZenQuotes has error
         $response->assertJson([
-            'zenQuotes' => [
-                'error' => true,
-                'errorMessage' => 'API error'
+            'quotes' => [
+                'zenQuotes' => [
+                    'quote' => [
+                        'error' => true,
+                        'errorMessage' => 'API error'
+                    ]
+                ]
             ]
         ]);
     }
@@ -215,21 +255,27 @@ class QuoteApiTest extends TestCase
         $this->mock(DummyJsonService::class, function ($mock) {
             $mock->shouldReceive('getRandomQuote')
                  ->once()
-                 ->andReturn([
-                     'quote' => 'DummyJSON quote',
-                     'author' => 'DummyJSON Author',
-                     'timeTaken' => 100
-                 ]);
+                 ->andReturn(new \App\Domain\Dto\QuoteJsonResponse(
+                     'dummyJson',
+                     'DummyJSON quote',
+                     'DummyJSON Author',
+                     100,
+                     null,
+                     true
+                 ));
         });
         
         $this->mock(ZenQuotesService::class, function ($mock) {
             $mock->shouldReceive('getRandomQuote')
                  ->once()
-                 ->andReturn([
-                     'quote' => 'ZenQuotes quote',
-                     'author' => 'ZenQuotes Author',
-                     'timeTaken' => 150
-                 ]);
+                 ->andReturn(new \App\Domain\Dto\QuoteJsonResponse(
+                     'zenQuotes',
+                     'ZenQuotes quote',
+                     'ZenQuotes Author',
+                     150,
+                     null,
+                     false
+                 ));
         });
 
         // Make request without authentication
@@ -247,38 +293,33 @@ class QuoteApiTest extends TestCase
         //allow stray requests otherwise the pool method will throw an exception
         Http::allowStrayRequests();
 
-        //do not mock the services, we want to test the rate limiter
-        // Make request without authentication
         $simultaneousRequests = 5;
-        $rateLimiter = new QuoteRateLimiter(app('Illuminate\Cache\RateLimiter'));
-        foreach (range(1, 5) as $ratelimit) {
-            $rateLimiter->resetAttempts();
-            $hasThrown = false;
+        $ratelimit = 3;
+        $rateLimithit = 0;
 
-            try {
-                $responses = Http::pool(function (Pool $pool) use ($simultaneousRequests, $ratelimit) {
-                    for ($i = 1; $i < $simultaneousRequests + 1; $i++) {
-                        $pool->withOptions([
-                            'http_errors' => false // This prevents Guzzle from throwing exceptions on HTTP errors
-                        ])->get("http://host.docker.internal/api/quotes/random?rateLimit=$ratelimit");
-                    }
-                });
-            } catch (\Throwable $e) {
-                $hasThrown = true;
+        // Log initial cache state
+        Log::info('Initial rate limit cache state: ', Cache::get('rate_limit_key'));
+
+        // Simulate simultaneous requests
+        for ($i = 0; $i < $simultaneousRequests; $i++) {
+            $response = $this->getJson('/api/quotes/random?rateLimit=100');
+
+            if ($response->status() !== 200) {
+                $rateLimithit++;
+                // Log cache hit
+                Log::info('Rate limit hit for request ' . $i);
+            } else {
+                // Log cache miss
+                Log::info('Rate limit not hit for request ' . $i);
             }
-            $this->assertFalse($hasThrown);
-            $rateLimithit = 0;
-            foreach ($responses as $response) {
-                if ($response->status() == 429) {
-                    $rateLimithit++;
-                } else {
-                    $this->assertEquals(200, $response->status());
-                }
-            }
-            $this->assertEquals($simultaneousRequests, count($responses));
-            $this->assertEquals($simultaneousRequests - $ratelimit, $rateLimithit);
-        }                
-    
+
+            $this->assertEquals(200, $response->status());
+        }
+
+        // Log final cache state
+        Log::info('Final rate limit cache state: ', Cache::get('rate_limit_key'));
+
+        $this->assertEquals($simultaneousRequests - $ratelimit, $rateLimithit);
     }
 
 }

@@ -2,6 +2,7 @@
 
 use App\Domain\Dto\QuoteDto;
 use App\Domain\Dto\QuoteJsonResponse;
+use App\Domain\Events\QuoteRetrievedEvent;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -24,7 +25,6 @@ Route::get('/health', function () {
 });
 
 
-
 Route::get('/', function () {
     return Inertia::render('Quotes', [
         'canLogin' => Route::has('login'),
@@ -33,6 +33,14 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 })->middleware(['auth', 'verified'])->name('quotes');
+
+
+Route::get('/simplestreamer', function () {
+    return Inertia::render('SimpleStreamer', [
+        'laravelVersion' => Application::VERSION,
+        'phpVersion' => PHP_VERSION,
+    ]);
+})->name('simplestreamer');
 
 
 Route::middleware('auth')->group(function () {
@@ -50,7 +58,7 @@ Route::get('/test-broadcast', function () {
         'test user'
     );
     
-    event(new QuoteRetrieved(new QuoteDto($testquote)));
+    event(new QuoteRetrievedEvent(new QuoteDto($testquote)));
     
     return 'Event dispatched!';
 });

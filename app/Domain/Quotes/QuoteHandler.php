@@ -45,7 +45,7 @@ class QuoteHandler
 
         // Only mark as fastest if there was no error
         $dummyJsonQuote->isFastest = empty($dummyJsonQuote->error) &&
-            ($dummyJsonTime <= $zenQuotesTime || !empty($zenQuotesQuote->error));
+            ($dummyJsonTime < $zenQuotesTime || !empty($zenQuotesQuote->error));
 
         $zenQuotesQuote->isFastest = empty($zenQuotesQuote->error) &&
             ($zenQuotesTime < $dummyJsonTime || !empty($dummyJsonQuote->error));

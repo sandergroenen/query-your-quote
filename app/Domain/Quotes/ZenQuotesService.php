@@ -4,7 +4,7 @@ namespace App\Domain\Quotes;
 
 use App\Domain\Dto\QuoteDto;
 use App\Domain\Dto\QuoteJsonResponse;
-use App\Domain\Events\QuoteRetrieved;
+use App\Domain\Events\QuoteRetrievedEvent;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -62,10 +62,10 @@ class ZenQuotesService
             );
 
             //dispatch the quoteRetrieved event so listeners can act on it
-            QuoteRetrieved::dispatch(new QuoteDto($jsonResponse));
+            QuoteRetrievedEvent::dispatch(new QuoteDto($jsonResponse));
 
             return $jsonResponse;
-            
+
         } catch (\Exception $e) {
             // Log the error
             Log::warning('Error fetching quote from ZenQuotes: ' . $e->getMessage());

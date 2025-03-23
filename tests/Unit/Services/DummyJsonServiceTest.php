@@ -177,11 +177,10 @@ class DummyJsonServiceTest extends TestCase
         $quote = $service->getRandomQuote();
 
         // Assert the quote data is returned
-        $this->assertEquals('This is a test quote', $quote['quote']);
-        $this->assertEquals('Test Author', $quote['author']);
-        $this->assertArrayHasKey('timeTaken', $quote);
-        $this->assertArrayHasKey('user', $quote);
-        $this->assertEquals(1, $quote['user']['id']);
+        $this->assertEquals('This is a test quote', $quote->quote);
+        $this->assertEquals('Test Author', $quote->author);
+        $this->assertIsNumeric($quote->timeTaken);
+        $this->assertEquals('testuser', $quote->user);
 
         // Assert HTTP request was made with the token
         Http::assertSent(function ($request) {
@@ -205,15 +204,23 @@ class DummyJsonServiceTest extends TestCase
         // Mock the quote API response with an error
         Http::fake([
             'https://dummyjson.com/quotes/random' => Http::response([
-                'message' => 'API rate limit exceeded'
-            ], 429)
+                'message' => 'Quote API error'
+            ], 500)
         ]);
 
         // Get an instance with the mocked login method
         $service = app(DummyJsonService::class);
         
-        // Set the access token
+        // Set the current user
         $reflectionClass = new \ReflectionClass($service);
+        $reflectionProperty = $reflectionClass->getProperty('currentUser');
+        $reflectionProperty->setAccessible(true);
+        $reflectionProperty->setValue($service, [
+            'id' => 1,
+            'username' => 'testuser'
+        ]);
+        
+        // Set the access token
         $reflectionProperty = $reflectionClass->getProperty('accessToken');
         $reflectionProperty->setAccessible(true);
         $reflectionProperty->setValue($service, 'test-token');
@@ -221,12 +228,17 @@ class DummyJsonServiceTest extends TestCase
         // Call the getRandomQuote method
         $quote = $service->getRandomQuote();
 
-        // Assert error data is returned
-        $this->assertStringContainsString('Unable to fetch quote from DummyJSON', $quote['quote']);
-        $this->assertEquals('Error', $quote['author']);
-        $this->assertEquals(0, $quote['timeTaken']);
-        $this->assertTrue($quote['error']);
-        $this->assertArrayHasKey('errorMessage', $quote);
+        // Assert the error response
+        $this->assertTrue($quote->error);
+        $this->assertStringContainsString('Quote API error', $quote->errorMessage);
+        $this->assertIsNumeric($quote->timeTaken);
+        $this->assertEquals('testuser', $quote->user);
+
+        // Assert HTTP request was made with the token
+        Http::assertSent(function ($request) {
+            return $request->url() == 'https://dummyjson.com/quotes/random' &&
+                   $request->hasHeader('Authorization', 'Bearer test-token');
+        });
     }
 
     #[Test]
@@ -244,15 +256,23 @@ class DummyJsonServiceTest extends TestCase
         // Mock the quote API response with invalid data
         Http::fake([
             'https://dummyjson.com/quotes/random' => Http::response([
-                'someOtherField' => 'value'
+                'invalid' => 'data'
             ], 200)
         ]);
 
         // Get an instance with the mocked login method
         $service = app(DummyJsonService::class);
         
-        // Set the access token
+        // Set the current user
         $reflectionClass = new \ReflectionClass($service);
+        $reflectionProperty = $reflectionClass->getProperty('currentUser');
+        $reflectionProperty->setAccessible(true);
+        $reflectionProperty->setValue($service, [
+            'id' => 1,
+            'username' => 'testuser'
+        ]);
+        
+        // Set the access token
         $reflectionProperty = $reflectionClass->getProperty('accessToken');
         $reflectionProperty->setAccessible(true);
         $reflectionProperty->setValue($service, 'test-token');
@@ -260,11 +280,16 @@ class DummyJsonServiceTest extends TestCase
         // Call the getRandomQuote method
         $quote = $service->getRandomQuote();
 
-        // Assert error data is returned
-        $this->assertStringContainsString('Unable to fetch quote from DummyJSON', $quote['quote']);
-        $this->assertEquals('Error', $quote['author']);
-        $this->assertEquals(0, $quote['timeTaken']);
-        $this->assertTrue($quote['error']);
-        $this->assertArrayHasKey('errorMessage', $quote);
+        // Assert the error response
+        $this->assertTrue($quote->error);
+        $this->assertStringContainsString('Invalid response', $quote->errorMessage);
+        $this->assertIsNumeric($quote->timeTaken);
+        $this->assertEquals('testuser', $quote->user);
+
+        // Assert HTTP request was made with the token
+        Http::assertSent(function ($request) {
+            return $request->url() == 'https://dummyjson.com/quotes/random' &&
+                   $request->hasHeader('Authorization', 'Bearer test-token');
+        });
     }
 }

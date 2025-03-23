@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class QuoteRetrieved implements ShouldBroadcast
+class QuoteRetrievedEvent implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -40,6 +40,5 @@ class QuoteRetrieved implements ShouldBroadcast
     {
         return 'QuoteRetrieved';
     }
-
 
 }

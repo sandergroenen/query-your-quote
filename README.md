@@ -9,6 +9,7 @@ A modern web application that generates random quotes and displays performance m
 Query Your Quote is a web application that demonstrates modern web development practices using Laravel and React. The application:
 
 - Fetches random quotes from the **DummyJSON API** and **Zenquotes API**
+- Real time display of retrieved quotes via **websocket streaming**, with history and only latest quote retrieved
 - Retrieval and usage of **bearer token authorization** (Dummyjson)
 - Shows real-time request performance metrics with a dynamic speedometer
 - Provides frontend user authentication and profile management
@@ -32,6 +33,11 @@ Query Your Quote is a web application that demonstrates modern web development p
 - **API Integration**: DummyJSON API & Zenquotes API
 - **Authentication**: Laravel Breeze
 - **Deployment**: AWS ECS, ECR, Cloudformation, Github Actions
+
+Note: for websocket stream additional componenst were used:
+- Reverb serverside websocket driver for laravel, see https://laravel.com/docs/12.x/broadcasting and https://reverb.laravel.com/)
+- Echo clientside websocket driver, see https://github.com/laravel/echo
+- Laravel Queuing with database driver, see https://laravel.com/docs/12.x/scout#queueing
 
 ## Getting Started
 
@@ -70,11 +76,17 @@ That's it! The script will:
 ### Accessing the Application
 
 Once the setup is complete, you can access the frontend application at:
-- **URL**: http://localhost
+- **URL**: Fronten login http://localhost
 - **Default credentials**:
   - Email: test@example.com
   - Password: password
-- the application features an api endpoint that can be called to get a random quote but provides theb above mentioned front-end for easy demonstration. If you want to access the api endpoint using curl or another tool directly please make a POST call to http://localhost/quotes/random which will return the quotes from the api directly
+- **Dispatch test quote event**: http://localhost/test-broadcast  
+- **Display latest quote retrieven in real time**: http://localhost/simplestreamer (no login required)  
+
+the application features an api endpoint that can be called to get a random quote but provides theb above mentioned front-end for easy demonstration. If you want to access the api endpoint using curl or another tool directly please make a call to any of the below endpoints: http://localhost/quotes/random which will return the quotes from the api directly
+
+- **Random quotes**: http://localhost/api/quotes/random  
+- **Fastest quote**: http://localhost/api/quotes/fastest  
 
 ## Features
 
@@ -95,10 +107,12 @@ Once the setup is complete, you can access the frontend application at:
 
 #### application logic
 - `RandomQuote.jsx` - Main component for displaying quotes
+- `QuoteStreamer.jsx` - Real time display of fetched quotes with history using websockets 
+- `QuoteSimpleChannel.jsx` - Real time display of only latest quote
 - `DummyJsonService.php` - Service for interacting with the DummyJSON API
 - `QuoteController.php` - API controller for quote-related endpoints
 - `routes/api.php` & `routes/web.php` - registering of routes for api and web including authentication and ratelimiting middleware
-
+- `app/Domain/**`- Business logic classes including various Data Transfer Objects (dtos) used for typed response handling, Services, Events and listener classes
 #### infrastructure
 - `docker-compose.yml` - Docker compose file for setting up development environment
 - Dockerfile` - Dockerfile for building the application container

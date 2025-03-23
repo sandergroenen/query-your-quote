@@ -9,7 +9,7 @@ A modern web application that generates random quotes and displays performance m
 Query Your Quote is a web application that demonstrates modern web development practices using Laravel and React. The application:
 
 - Fetches random quotes from the **DummyJSON API** and **Zenquotes API**
-- Real time display of retrieved quotes via **websocket streaming**, with history and only latest quote retrieved
+- Real time display of retrieved quotes via **websocket streaming**, with history, only latest quote and filtering on keywoards
 - Retrieval and usage of **bearer token authorization** (Dummyjson)
 - Shows real-time request performance metrics with a dynamic speedometer
 - Provides frontend user authentication and profile management
@@ -81,7 +81,8 @@ Once the setup is complete, you can access the frontend application at:
   - Email: test@example.com
   - Password: password
 - **Dispatch test quote event**: http://localhost/test-broadcast  
-- **Display latest quote retrieven in real time**: http://localhost/simplestreamer (no login required)  
+- **Dispatch test quote event**: http://localhost/test-broadcast2  
+- **Display latest quote and filtered quote retrieven in real time**: http://localhost/simplestreamer (no login required)  
 
 the application features an api endpoint that can be called to get a random quote but provides theb above mentioned front-end for easy demonstration. If you want to access the api endpoint using curl or another tool directly please make a call to any of the below endpoints: http://localhost/quotes/random which will return the quotes from the api directly
 
@@ -97,18 +98,21 @@ the application features an api endpoint that can be called to get a random quot
 ### Project Structure
 
 - `app/` - Laravel application code
+- `app/Domain` - Sever business/domain logic classes
 - `resources/js/` - React components and pages
 - `resources/js/Components/Quote/` - Quote-related components
 - `routes/` - API and web routes
 - `scripts/` - Utility scripts for development
-- `scripts/` - All unit, feature and integration tests
+- `tests/` - All unit, feature and integration tests
 
 ### Key Components
 
 #### application logic
-- `RandomQuote.jsx` - Main component for displaying quotes
+- `RandomQuote.jsx` - Main component for displaying quotes and determining fastest
 - `QuoteStreamer.jsx` - Real time display of fetched quotes with history using websockets 
+- `FastedQuote.jsx` - Real time display of fasted quote, determined by looking at response times from all rertieved api endpoints 
 - `QuoteSimpleChannel.jsx` - Real time display of only latest quote
+- `FilteredQuoteSimpleChannel.jsx` - Real time display of only latest filtered quote by keyword, including setting of filter value via input
 - `DummyJsonService.php` - Service for interacting with the DummyJSON API
 - `QuoteController.php` - API controller for quote-related endpoints
 - `routes/api.php` & `routes/web.php` - registering of routes for api and web including authentication and ratelimiting middleware

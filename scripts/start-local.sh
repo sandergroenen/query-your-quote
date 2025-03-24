@@ -39,7 +39,7 @@ if [ ! -f ".env" ]; then
 fi
 
 # Build and start the containers
-docker compose up -d --build
+docker compose up -d
 
 echo "Waiting for containers to start..."
 sleep 5

@@ -313,7 +313,7 @@ class QuoteApiTest extends TestCase
             // Send requests sequentially
             for ($i = 0; $i < $simultaneousRequests; $i++) {
                 $response = Http::get("http://host.docker.internal/api/quotes/random?rateLimit=$rateLimit");
-
+                echo "Response status code: " . $response->status();
                 if ($response->status() !== 200) {
                     $rateLimithit++;
                     $this->assertEquals(429, $response->status());

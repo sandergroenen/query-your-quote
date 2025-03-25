@@ -39,6 +39,8 @@ if [ ! -f ".env" ]; then
 fi
 
 # Build and start the containers
+# temp disable build to speed up start process
+# docker compose up -d --build
 docker compose up -d
 
 echo "Waiting for containers to start..."

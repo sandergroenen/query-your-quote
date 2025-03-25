@@ -10,3 +10,9 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 Broadcast::channel('quotes', function ($user) {
     return true; // Allow all authenticated users to access this channel
 });
+
+// Private quotes channel with token in request
+Broadcast::channel('private_quotes', function ($user) {
+    $token = request()->input('token');
+    return ($token == 'secret'); // allow all secret members access :-)
+});

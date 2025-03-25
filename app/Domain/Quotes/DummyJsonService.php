@@ -4,6 +4,7 @@ namespace App\Domain\Quotes;
 
 use App\Domain\Dto\QuoteDto;
 use App\Domain\Dto\QuoteJsonResponse;
+use App\Domain\Events\PrivateQuoteEvent;
 use App\Domain\Events\QuoteRetrievedEvent;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -154,6 +155,7 @@ class DummyJsonService
                 false
             );
             QuoteRetrievedEvent::dispatch(new QuoteDto($jsonResponse));
+            PrivateQuoteEvent::dispatch(new QuoteDto($jsonResponse));
 
             // Return formatted quote with user info
             return $jsonResponse;

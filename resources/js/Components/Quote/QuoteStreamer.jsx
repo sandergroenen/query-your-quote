@@ -16,7 +16,6 @@ function QuoteStreamer() {
 
         // Listen for the quotes channel
         const channel = window.Echo.channel('quotes');
-
         // Listen for the QuoteRetrieved event
         channel.listen('.QuoteRetrieved', (event) => {
             console.log('Received quote event in streamer', event);

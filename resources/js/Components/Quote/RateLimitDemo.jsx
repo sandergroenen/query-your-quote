@@ -92,10 +92,10 @@ export default function RateLimitDemo() {
                 // Parse JSON response
                 const data = await response.json();
                 
-                console.log(data);
+                console.log('data received in ratelimiter',data);
                 // Check for API errors
-                const dummyJsonError = data.dummyJson.jsonResponseQuote.error;
-                const zenQuotesError = data.zenQuotes.jsonResponseQuote.error;
+                const dummyJsonError = data.quotes.dummyJson.jsonResponseQuote.error;
+                const zenQuotesError = data.quotes.zenQuotes.jsonResponseQuote.error;
                 
                 let content = `Request ${i+1}: `;
                 
@@ -103,26 +103,26 @@ export default function RateLimitDemo() {
                 if (dummyJsonError && zenQuotesError) {
                     // Both APIs had errors
                     content += `Both APIs returned errors: \n`;
-                    content += `DummyJSON: ${data.dummyJson.jsonResponseQuote.error}\n`;
-                    content += `ZenQuotes: ${data.zenQuotes.jsonResponseQuote.error}`;
+                    content += `DummyJSON: ${data.quotes.dummyJson.jsonResponseQuote.error}\n`;
+                    content += `ZenQuotes: ${data.quotes.zenQuotes.jsonResponseQuote.error}`;
                 } else if (dummyJsonError) {
                     // Only DummyJSON had an error
-                    content += `DummyJSON Error: ${data.dummyJson.jsonResponseQuote.error}\n`;
-                    content += `ZenQuotes: "${data.zenQuotes.jsonResponseQuote.quote}" - ${data.zenQuotes.author}`;
+                    content += `DummyJSON Error: ${data.quotes.dummyJson.jsonResponseQuote.error}\n`;
+                    content += `ZenQuotes: "${data.quotes.zenQuotes.jsonResponseQuote.quote}" - ${data.quotes.zenQuotes.author}`;
                 } else if (zenQuotesError) {
                     // Only ZenQuotes had an error
-                    content += `DummyJSON: "${data.dummyJson.jsonResponseQuote.quote}" - ${data.dummyJson.jsonResponseQuote.author}\n`;
-                    content += `ZenQuotes Error: ${data.zenQuotes.jsonResponseQuote.error}`;
+                    content += `DummyJSON: "${data.quotes.dummyJson.jsonResponseQuote.quote}" - ${data.quotes.dummyJson.jsonResponseQuote.author}\n`;
+                    content += `ZenQuotes Error: ${data.quotes.zenQuotes.jsonResponseQuote.error}`;
                 } else {
                     // No errors
-                    content += `DummyJSON: "${data.dummyJson.jsonResponseQuote.quote}" - ${data.dummyJson.jsonResponseQuote.author}\n`;
-                    content += `ZenQuotes: "${data.zenQuotes.jsonResponseQuote.quote}" - ${data.zenQuotes.jsonResponseQuote.author}`;
+                    content += `DummyJSON: "${data.quotes.dummyJson.jsonResponseQuote.quote}" - ${data.quotes.dummyJson.jsonResponseQuote.author}\n`;
+                    content += `ZenQuotes: "${data.quotes.zenQuotes.jsonResponseQuote.quote}" - ${data.quotes.zenQuotes.jsonResponseQuote.author}`;
                 }
                 
                 // Add user info if available
-                if (data.dummyJson.jsonResponseQuote.user && !dummyJsonError) {
-                    const user = data.dummyJson.jsonResponseQuote.user;
-                    content += data.dummyJson.jsonResponseQuote.user;
+                if (data.quotes.dummyJson.jsonResponseQuote.user && !dummyJsonError) {
+                    const user = data.quotes.dummyJson.jsonResponseQuote.user;
+                    content += data.quotes.dummyJson.jsonResponseQuote.user;
                 }
                 
                 // Add to results array

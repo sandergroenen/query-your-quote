@@ -2,7 +2,7 @@
 
 use App\Domain\Dto\QuoteDto;
 use App\Domain\Dto\QuoteJsonResponse;
-use App\Domain\Events\QuoteRetrievedEvent;
+use App\Domain\Events\PrivateQuoteEvent;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -58,7 +58,7 @@ Route::get('/test-broadcast', function () {
         'test user'
     );
     
-    event(new QuoteRetrievedEvent(new QuoteDto($testquote)));
+    event(new PrivateQuoteEvent(new QuoteDto($testquote)));
     
     return 'Event dispatched!';
 });
@@ -72,7 +72,7 @@ Route::get('/test-broadcast2', function () {
         'xxx'
     );
     
-    event(new QuoteRetrievedEvent(new QuoteDto($testquote)));
+    event(new PrivateQuoteEvent(new QuoteDto($testquote)));
     
     return 'Event dispatched!';
 });

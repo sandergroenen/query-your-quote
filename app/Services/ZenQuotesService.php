@@ -53,7 +53,7 @@ class ZenQuotesService
                 'quote' => $data[0]['q'],
                 'author' => $data[0]['a'],
                 'timeTaken' => round($timeTaken, 2)
-            ];fastest
+            ];
         } catch (\Exception $e) {
             // Log the error
             Log::warning('Error fetching quote from ZenQuotes: ' . $e->getMessage());

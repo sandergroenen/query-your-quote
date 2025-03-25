@@ -65,6 +65,7 @@ class QuoteController extends Controller
             ], 500);
         }
 
+        //@phpstan-ignore-next-line
         return response()->json([
             'error' => 'Unexpected return path'
         ], 500);
